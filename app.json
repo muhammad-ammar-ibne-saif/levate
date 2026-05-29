@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Team L-Evate",
+    "slug": "team-levate",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "teamlevate",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.srInnovations.teamlevate"
+    },
+    "android": {
+      "package": "com.srInnovations.teamlevate"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
