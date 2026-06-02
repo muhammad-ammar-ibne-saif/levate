@@ -21,7 +21,7 @@ import { useAuthStore } from "@/store/auth";
 
 // ── IMPORTANT: set this to your server URL ──────────────────────────────────
 // Same as API_BASE_URL in lib/api.ts
-const SOCKET_URL = "http://192.168.1.8:4000";
+const SOCKET_URL = "https://levate-production.up.railway.app";
 // ────────────────────────────────────────────────────────────────────────────
 
 interface Message {

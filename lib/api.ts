@@ -3,7 +3,7 @@ import * as SecureStore from "expo-secure-store";
 
 // ─── API URL is set here at build time ───────────────────────────────────────
 // NEVER expose this in any UI screen. Change this before deploying.
-const API_BASE_URL = "http://192.168.1.8:4000"; 
+const API_BASE_URL = "https://levate-production.up.railway.app"; 
 
 // ─────────────────────────────────────────────────────────────────────────────
 
