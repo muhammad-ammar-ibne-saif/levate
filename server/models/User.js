@@ -11,12 +11,13 @@ const userSchema = new mongoose.Schema(
     avatar:     { type: String, default: "" },
     pushToken:  { type: String, default: "" },
     goals:      { type: [String], default: ["race"] },
+    daysPerWeek: { type: Number, default: 4 },
     currentWeek:    { type: Number, default: 1 },
     currentProgram: { type: String, default: "8-Week Hybrid Foundation" },
     notificationsEnabled: { type: Boolean, default: true },
     isAdmin:    { type: Boolean, default: false },   // ← admin flag
     resetCode:        { type: String },
-    resetCodeExpires: { type: Number },
+    resetCodeExpires: { type: Number }, 
   },
   { timestamps: true }
 );
