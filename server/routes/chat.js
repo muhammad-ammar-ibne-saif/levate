@@ -9,10 +9,9 @@ router.post("/", auth, async (req, res) => {
     if (!message?.trim())
       return res.status(400).json({ message: "Message is required." });
 
-    if (!process.env.OPENAI_API_KEY)
-      return res.status(500).json({ message: "OpenAI API key not configured." });
+    if (!process.env.ANTHROPIC_API_KEY)
+      return res.status(500).json({ message: "AI service not configured." });
 
-    // Build system prompt with user context injected
     const systemPrompt = `You are an expert hybrid training coach and AI assistant for Team L-Evate, a fitness app.
 
 User context:
@@ -31,9 +30,7 @@ Your role:
 - Stay focused on fitness and training topics only
 - If asked something off-topic, politely redirect back to training`;
 
-    // Build messages array for OpenAI
     const messages = [
-      { role: "system", content: systemPrompt },
       ...history.slice(-10).map((m) => ({
         role:    m.role === "assistant" ? "assistant" : "user",
         content: m.content,
@@ -41,38 +38,35 @@ Your role:
       { role: "user", content: message },
     ];
 
-    // Call OpenAI API directly using fetch (no SDK needed)
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        "Content-Type":  "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type":      "application/json",
+        "x-api-key":         process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model:       process.env.OPENAI_MODEL || "gpt-4o-mini",
+        model:      "claude-haiku-4-5-20251001",
+        max_tokens: 400,
+        system:     systemPrompt,
         messages,
-        max_tokens:  400,
-        temperature: 0.7,
       }),
     });
 
     if (!response.ok) {
-      const errData = await response.json();
-      console.error("OpenAI error:", errData);
-
-      // Give user friendly messages for common errors
+      const err = await response.json();
+      console.error("Anthropic error:", err);
       if (response.status === 401)
-        return res.status(500).json({ message: "AI service authentication failed. Check OPENAI_API_KEY." });
+        return res.status(500).json({ message: "AI authentication failed." });
       if (response.status === 429)
         return res.status(429).json({ message: "Too many requests. Please wait a moment and try again." });
-      if (response.status === 402 || errData?.error?.code === "insufficient_quota")
-        return res.status(500).json({ message: "AI service quota exceeded. Please try again later." });
-
+      if (response.status === 529)
+        return res.status(503).json({ message: "AI service overloaded. Please try again shortly." });
       return res.status(500).json({ message: "AI service unavailable. Please try again." });
     }
 
     const data  = await response.json();
-    const reply = data.choices?.[0]?.message?.content?.trim();
+    const reply = data.content?.[0]?.text?.trim();
 
     if (!reply)
       return res.status(500).json({ message: "No response from AI. Please try again." });
