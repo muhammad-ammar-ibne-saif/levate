@@ -11,12 +11,12 @@ const tabs: {
   activeIcon: IconName;
 }[] = [
   { name: "home", title: "Home", icon: "home-outline", activeIcon: "home" },
-  // {
-  //   name: "goals",
-  //   title: "Goals",
-  //   icon: "radio-button-off-outline",
-  //   activeIcon: "radio-button-on",
-  // },
+  {
+    name: "goals",
+    title: "Goals",
+    icon: "radio-button-off-outline",
+    activeIcon: "radio-button-on",
+  },
   {
     name: "community",
     title: "Community",

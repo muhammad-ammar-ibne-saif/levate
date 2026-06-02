@@ -5,10 +5,12 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/Button";
+import { useAuthStore } from "@/store/auth";
 
 const GOALS = [
   {
@@ -38,11 +40,30 @@ const GOALS = [
 ];
 
 export default function GoalsScreen() {
-  const [selected, setSelected] = useState<string[]>(["race"]);
-  const toggle = (id: string) =>
-    setSelected((p) =>
-      p.includes(id) ? p.filter((g) => g !== id) : [...p, id]
+  const { user, updateProfile, isLoading } = useAuthStore();
+  const [selected, setSelected] = useState<string[]>(user?.goals || ["hybrid"]);
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      if (prev.includes(id)) {
+        if (prev.length === 1) return prev; // must keep at least one
+        return prev.filter((g) => g !== id);
+      }
+      return [...prev, id];
+    });
+  };
+
+  const handleSave = async () => {
+    await updateProfile({ goals: selected } as any);
+    Alert.alert(
+      "Goals Saved! 🎯",
+      "Your training plan has been updated to match your goals.",
+      [
+        { text: "View Plan", onPress: () => router.push("/app/program") },
+        { text: "OK" },
+      ]
     );
+  };
 
   return (
     <SafeAreaView style={s.safe}>
@@ -50,10 +71,11 @@ export default function GoalsScreen() {
         <View style={s.header}>
           <Text style={s.heading}>Your Goals</Text>
           <Text style={s.sub}>
-            Select your primary training goal. Your plan adapts to what matters
+            Select your primary training goals. Your plan adapts to what matters
             most.
           </Text>
         </View>
+
         <View style={s.grid}>
           {GOALS.map((g) => {
             const on = selected.includes(g.id);
@@ -65,7 +87,7 @@ export default function GoalsScreen() {
                 style={[s.card, on && s.cardActive]}
               >
                 <View style={[s.emoji, on && s.emojiActive]}>
-                  <Text style={{ fontSize: 20 }}>{g.emoji}</Text>
+                  <Text style={{ fontSize: 24 }}>{g.emoji}</Text>
                 </View>
                 <Text style={s.cardTitle}>{g.title}</Text>
                 <Text style={s.cardSub}>{g.sub}</Text>
@@ -74,7 +96,7 @@ export default function GoalsScreen() {
                     <Text
                       style={{
                         color: "#0D0D0D",
-                        fontSize: 10,
+                        fontSize: 11,
                         fontWeight: "800",
                       }}
                     >
@@ -86,11 +108,28 @@ export default function GoalsScreen() {
             );
           })}
         </View>
+
+        {/* Selected summary */}
+        <View style={s.summary}>
+          <Text style={s.summaryText}>
+            {selected.length === 1
+              ? `1 goal selected — your plan is focused`
+              : `${selected.length} goals selected — your plan is balanced`}
+          </Text>
+        </View>
+
         <View style={{ paddingHorizontal: 20 }}>
           <Button
-            label="Save Goals"
-            onPress={() => router.push("/app/(tabs)/home")}
+            label={isLoading ? "Saving…" : "Save Goals"}
+            onPress={handleSave}
+            loading={isLoading}
           />
+          <TouchableOpacity
+            style={s.viewPlanBtn}
+            onPress={() => router.push("/app/program")}
+          >
+            <Text style={s.viewPlanText}>View your adapted plan →</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -100,14 +139,14 @@ export default function GoalsScreen() {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#0D0D0D" },
   header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 },
-  heading: { color: "#fff", fontSize: 20, fontWeight: "700", marginBottom: 6 },
-  sub: { color: "#9A9A9A", fontSize: 13, lineHeight: 20 },
+  heading: { color: "#fff", fontSize: 22, fontWeight: "800", marginBottom: 6 },
+  sub: { color: "#9A9A9A", fontSize: 14, lineHeight: 22 },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     paddingHorizontal: 20,
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   card: {
     width: "47%",
@@ -119,29 +158,49 @@ const s = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.1)",
     position: "relative",
   },
-  cardActive: { borderColor: "#7ED957" },
+  cardActive: {
+    borderColor: "#7ED957",
+    backgroundColor: "rgba(126,217,87,0.05)",
+  },
   emoji: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: "#2A2A2A",
     alignItems: "center",
     justifyContent: "center",
   },
   emojiActive: { backgroundColor: "rgba(126,217,87,0.12)" },
-  cardTitle: { color: "#fff", fontSize: 13, fontWeight: "600" },
-  cardSub: { color: "#5A5A5A", fontSize: 11, lineHeight: 16 },
+  cardTitle: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  cardSub: { color: "#5A5A5A", fontSize: 12, lineHeight: 17 },
   check: {
     position: "absolute",
     top: 12,
     right: 12,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
   },
   checkActive: { backgroundColor: "#7ED957", borderColor: "#7ED957" },
+  summary: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: "rgba(126,217,87,0.06)",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 0.5,
+    borderColor: "rgba(126,217,87,0.2)",
+  },
+  summaryText: {
+    color: "#7ED957",
+    fontSize: 13,
+    textAlign: "center",
+    fontWeight: "500",
+  },
+  viewPlanBtn: { marginTop: 14, alignItems: "center" },
+  viewPlanText: { color: "#7ED957", fontSize: 13, fontWeight: "600" },
 });
