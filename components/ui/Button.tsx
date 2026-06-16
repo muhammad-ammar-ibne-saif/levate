@@ -6,6 +6,7 @@ import {
   TouchableOpacityProps,
   StyleSheet,
 } from "react-native";
+import { colors, radius } from "../../lib/theme";
 
 interface ButtonProps extends TouchableOpacityProps {
   label: string;
@@ -24,27 +25,29 @@ export function Button({
   style,
   ...props
 }: ButtonProps) {
+  const baseStyle = [
+    s.base,
+    s[variant],
+    s[size],
+    (disabled || loading) && s.disabled,
+    style,
+  ];
+
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.75}
-      style={[
-        s.base,
-        s[variant],
-        s[size],
-        (disabled || loading) && s.disabled,
-        style,
-      ]}
+      activeOpacity={0.8}
+      style={baseStyle}
       {...props}
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === "primary" ? "#0D0D0D" : "#7ED957"}
+          color={variant === "primary" ? colors.textOnPrimary : colors.primary}
           size="small"
         />
       ) : (
-        <Text style={[s.text, s[`t_${variant}`], s[`ts_${size}`]]}>
+        <Text style={[s.text, s[`text_${variant}`], s[`textSize_${size}`]]}>
           {label}
         </Text>
       )}
@@ -53,27 +56,31 @@ export function Button({
 }
 
 const s = StyleSheet.create({
-  base: { borderRadius: 50, alignItems: "center", justifyContent: "center" },
-  primary: { backgroundColor: "#7ED957" },
+  base: {
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  primary: { backgroundColor: colors.primary },
   outline: {
     backgroundColor: "transparent",
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: "rgba(255,255,255,0.15)",
   },
   ghost: {
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.button,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
   },
   sm: { paddingHorizontal: 16, paddingVertical: 10 },
   md: { paddingVertical: 16, width: "100%" },
   lg: { paddingVertical: 18, width: "100%" },
   disabled: { opacity: 0.5 },
   text: { fontWeight: "700", letterSpacing: 0.2 },
-  t_primary: { color: "#0D0D0D" },
-  t_outline: { color: "#ffffff" },
-  t_ghost: { color: "#ffffff" },
-  ts_sm: { fontSize: 13 },
-  ts_md: { fontSize: 15 },
-  ts_lg: { fontSize: 17 },
+  text_primary: { color: colors.textOnPrimary },
+  text_outline: { color: colors.textPrimary },
+  text_ghost: { color: colors.textPrimary },
+  textSize_sm: { fontSize: 13 },
+  textSize_md: { fontSize: 15 },
+  textSize_lg: { fontSize: 17 },
 } as any);

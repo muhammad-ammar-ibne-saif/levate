@@ -8,9 +8,11 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/auth";
+import { colors, spacing } from "../../lib/theme";
 
 export default function SignupScreen() {
   const [form, setForm] = useState({
@@ -36,7 +38,8 @@ export default function SignupScreen() {
       form.password
     );
     const state = useAuthStore.getState();
-    if (state.isAuthenticated) router.replace("/app/(tabs)/home");
+    // New users go through the personalisation flow before the main app
+    if (state.isAuthenticated) router.replace("/auth/personalize");
   };
 
   return (
@@ -46,11 +49,11 @@ export default function SignupScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <TouchableOpacity style={s.back} onPress={() => router.back()}>
-          <Text style={s.backText}>‹</Text>
+          <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={s.title}>Create your account</Text>
+        <Text style={s.title}>Join the team</Text>
         <Text style={s.sub}>
-          Save your plan, track your progress, and stay ready for race day.
+          Find your community — then become fitter than you thought possible.
         </Text>
         <View style={s.nameRow}>
           <View style={{ flex: 1 }}>
@@ -76,6 +79,7 @@ export default function SignupScreen() {
           value={form.email}
           onChangeText={set("email")}
           keyboardType="email-address"
+          autoCapitalize="none"
         />
         <Input
           label="Create Password"
@@ -113,22 +117,31 @@ export default function SignupScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
-  scroll: { padding: 24 },
+  safe: { flex: 1, backgroundColor: colors.background },
+  scroll: { padding: spacing.xl },
   back: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
-  backText: { color: "#fff", fontSize: 24, lineHeight: 28 },
-  title: { color: "#fff", fontSize: 26, fontWeight: "800", marginBottom: 6 },
-  sub: { color: "#9A9A9A", fontSize: 14, lineHeight: 22, marginBottom: 28 },
+  title: {
+    color: colors.textPrimary,
+    fontSize: 26,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  sub: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: spacing.xl,
+  },
   nameRow: { flexDirection: "row", gap: 10 },
   errBox: {
     backgroundColor: "rgba(239,68,68,0.1)",
@@ -138,12 +151,12 @@ const s = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
   },
-  errText: { color: "#EF4444", fontSize: 13 },
+  errText: { color: colors.danger, fontSize: 13 },
   footer: {
     textAlign: "center",
-    color: "#9A9A9A",
+    color: colors.textSecondary,
     fontSize: 13,
     marginTop: 16,
   },
-  link: { color: "#7ED957", fontWeight: "600" },
+  link: { color: colors.primary, fontWeight: "600" },
 });

@@ -5,24 +5,32 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/auth";
 import { useGreeting } from "@/hooks/useGreeting";
+import { colors, radius, spacing } from "../../../lib/theme";
 import api from "@/lib/api";
+
+type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
 interface WorkoutPlan {
   _id: string;
   name: string;
   type: "lift" | "run" | "race";
-  scheduledFor: string;
   duration: number;
   sets?: string;
   zone?: string;
 }
+
+const TYPE_ICON: Record<string, IconName> = {
+  lift: "barbell-outline",
+  run: "footsteps-outline",
+  race: "flag-outline",
+};
 
 const FALLBACK_WORKOUTS = [
   {
@@ -32,8 +40,6 @@ const FALLBACK_WORKOUTS = [
     name: "Lower power + carries",
     meta: "Set 5+1 · ~45 min",
     badge: "Today",
-    color: "#7ED957",
-    dimColor: "rgba(126,217,87,0.12)",
   },
   {
     _id: "2",
@@ -42,8 +48,6 @@ const FALLBACK_WORKOUTS = [
     name: "Threshold Builder Run",
     meta: "~35 min · Zone 3–4",
     badge: "Today",
-    color: "#5B9CF6",
-    dimColor: "rgba(91,156,246,0.12)",
   },
   {
     _id: "3",
@@ -52,8 +56,6 @@ const FALLBACK_WORKOUTS = [
     name: "Race prep + adaptive progress",
     meta: "Tuesday · ~30 min",
     badge: "Tue",
-    color: "#F97316",
-    dimColor: "rgba(249,115,22,0.12)",
   },
 ];
 
@@ -67,12 +69,10 @@ export default function HomeScreen() {
     totalWeeks: 8,
     percentage: 62,
   });
-  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchData = async () => {
     try {
-      // Fetch workout progress
       const progRes = await api.get("/api/workouts/progress");
       if (progRes.data?.currentWeek) {
         setProgress({
@@ -83,7 +83,6 @@ export default function HomeScreen() {
           ),
         });
       }
-      // Fetch today's plan
       const planRes = await api.get("/api/workouts/today");
       if (planRes.data?.workouts?.length > 0) {
         const mapped = planRes.data.workouts.map((w: WorkoutPlan) => ({
@@ -100,24 +99,10 @@ export default function HomeScreen() {
             w.zone ? ` · ${w.zone}` : ""
           }`,
           badge: "Today",
-          color:
-            w.type === "lift"
-              ? "#7ED957"
-              : w.type === "run"
-              ? "#5B9CF6"
-              : "#F97316",
-          dimColor:
-            w.type === "lift"
-              ? "rgba(126,217,87,0.12)"
-              : w.type === "run"
-              ? "rgba(91,156,246,0.12)"
-              : "rgba(249,115,22,0.12)",
         }));
         setWorkouts(mapped);
       }
-    } catch {
-      // Keep fallback data if API not available
-    }
+    } catch {}
   };
 
   useEffect(() => {
@@ -139,7 +124,7 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#7ED957"
+            tintColor={colors.primary}
           />
         }
       >
@@ -152,7 +137,11 @@ export default function HomeScreen() {
             style={s.notifBtn}
             onPress={() => router.push("/app/(tabs)/notifications")}
           >
-            <Text style={{ fontSize: 18 }}>🔔</Text>
+            <Ionicons
+              name="notifications-outline"
+              size={19}
+              color={colors.textPrimary}
+            />
           </TouchableOpacity>
         </View>
 
@@ -162,7 +151,7 @@ export default function HomeScreen() {
             <Text style={s.weekLabel}>
               You're in Week {progress.week} of {progress.totalWeeks}, and your
             </Text>
-            <Text style={s.weekTitle}>hybrid plan is moving forward.</Text>
+            <Text style={s.weekTitle}>plan is moving forward.</Text>
             <View style={s.progressTrack}>
               <View
                 style={[s.progressFill, { width: `${progress.percentage}%` }]}
@@ -175,7 +164,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Today label */}
         <View style={s.sectionRow}>
           <Text style={s.sectionTitle}>Today</Text>
           <TouchableOpacity onPress={() => router.push("/app/program")}>
@@ -183,7 +171,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Workout cards */}
         <View style={s.cardsContainer}>
           {workouts.map((w) => (
             <TouchableOpacity
@@ -197,27 +184,26 @@ export default function HomeScreen() {
                 })
               }
             >
-              <View style={[s.cardAccent, { backgroundColor: w.color }]} />
-              <View style={[s.cardIcon, { backgroundColor: w.dimColor }]}>
-                <Text style={{ fontSize: 18 }}>
-                  {w.type === "lift" ? "🏋️" : w.type === "run" ? "🏃" : "🏁"}
-                </Text>
+              <View style={s.cardAccent} />
+              <View style={s.cardIcon}>
+                <Ionicons
+                  name={TYPE_ICON[w.type]}
+                  size={20}
+                  color={colors.primary}
+                />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[s.cardTag, { color: w.color }]}>{w.tag}</Text>
+                <Text style={s.cardTag}>{w.tag}</Text>
                 <Text style={s.cardName}>{w.name}</Text>
                 <Text style={s.cardMeta}>{w.meta}</Text>
               </View>
-              <View style={[s.cardBadge, { backgroundColor: w.dimColor }]}>
-                <Text style={[s.cardBadgeText, { color: w.color }]}>
-                  {w.badge}
-                </Text>
+              <View style={s.cardBadge}>
+                <Text style={s.cardBadgeText}>{w.badge}</Text>
               </View>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Program card */}
         <Text
           style={[s.sectionTitle, { paddingHorizontal: 20, marginBottom: 12 }]}
         >
@@ -237,7 +223,11 @@ export default function HomeScreen() {
               </Text>
             </View>
             <View style={s.programArrow}>
-              <Text style={{ color: "#7ED957", fontSize: 20 }}>›</Text>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={colors.primary}
+              />
             </View>
           </View>
           <View style={s.badgeRow}>
@@ -249,10 +239,10 @@ export default function HomeScreen() {
           </View>
           <View style={s.programBtns}>
             <TouchableOpacity
-              style={s.btnGreen}
+              style={s.btnPrimary}
               onPress={() => router.push("/app/workout/active")}
             >
-              <Text style={s.btnGreenText}>Start workout</Text>
+              <Text style={s.btnPrimaryText}>Start workout</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={s.btnGhost}
@@ -264,16 +254,19 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* FAB chat */}
       <TouchableOpacity style={s.fab} onPress={() => router.push("/app/chat")}>
-        <Text style={{ color: "#0D0D0D", fontSize: 22 }}>💬</Text>
+        <Ionicons
+          name="chatbubble-ellipses-outline"
+          size={22}
+          color={colors.textOnPrimary}
+        />
       </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
+  safe: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -281,15 +274,20 @@ const s = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 4,
   },
-  greeting: { color: "#9A9A9A", fontSize: 14 },
-  name: { color: "#fff", fontSize: 24, fontWeight: "700", marginTop: 2 },
+  greeting: { color: colors.textSecondary, fontSize: 14 },
+  name: {
+    color: colors.textPrimary,
+    fontSize: 24,
+    fontWeight: "700",
+    marginTop: 2,
+  },
   notifBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -297,42 +295,42 @@ const s = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 16,
     marginBottom: 20,
-    backgroundColor: "#1E1E1E",
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     padding: 18,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
   },
   weekLabel: {
-    color: "#5A5A5A",
+    color: colors.textTertiary,
     fontSize: 11,
     textTransform: "uppercase",
     letterSpacing: 0.8,
     marginBottom: 4,
   },
   weekTitle: {
-    color: "#fff",
+    color: colors.textPrimary,
     fontSize: 15,
     fontWeight: "700",
     marginBottom: 12,
   },
   progressTrack: {
     height: 4,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 2,
     overflow: "hidden",
   },
-  progressFill: { height: 4, backgroundColor: "#7ED957", borderRadius: 2 },
+  progressFill: { height: 4, backgroundColor: colors.primary, borderRadius: 2 },
   weekNumBox: { marginLeft: 20, alignItems: "center" },
   weekNum: {
-    color: "#7ED957",
+    color: colors.primary,
     fontSize: 36,
     fontWeight: "800",
     lineHeight: 40,
   },
-  weekOf: { color: "#5A5A5A", fontSize: 11, marginTop: 2 },
+  weekOf: { color: colors.textTertiary, fontSize: 11, marginTop: 2 },
   sectionRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -340,18 +338,18 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 12,
   },
-  sectionTitle: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  sectionAction: { color: "#7ED957", fontSize: 12, fontWeight: "600" },
+  sectionTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: "700" },
+  sectionAction: { color: colors.primary, fontSize: 12, fontWeight: "600" },
   cardsContainer: { paddingHorizontal: 20, gap: 10, marginBottom: 24 },
   workoutCard: {
-    backgroundColor: "#1E1E1E",
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     padding: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     position: "relative",
     overflow: "hidden",
   },
@@ -361,13 +359,15 @@ const s = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 3,
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
+    backgroundColor: colors.primary,
+    borderTopLeftRadius: radius.lg,
+    borderBottomLeftRadius: radius.lg,
   },
   cardIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: radius.sm,
+    backgroundColor: colors.primaryDim,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 6,
@@ -378,18 +378,29 @@ const s = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.8,
     marginBottom: 3,
+    color: colors.primary,
   },
-  cardName: { color: "#fff", fontSize: 14, fontWeight: "700", marginBottom: 3 },
-  cardMeta: { color: "#9A9A9A", fontSize: 12 },
-  cardBadge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-  cardBadgeText: { fontSize: 11, fontWeight: "700" },
+  cardName: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 3,
+  },
+  cardMeta: { color: colors.textSecondary, fontSize: 12 },
+  cardBadge: {
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: colors.primaryDim,
+  },
+  cardBadgeText: { fontSize: 11, fontWeight: "700", color: colors.primary },
   programCard: {
     marginHorizontal: 20,
-    backgroundColor: "#1E1E1E",
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     padding: 20,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     marginBottom: 24,
   },
   programTop: {
@@ -398,13 +409,13 @@ const s = StyleSheet.create({
     marginBottom: 14,
   },
   programTitle: {
-    color: "#fff",
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 6,
   },
   programDesc: {
-    color: "#9A9A9A",
+    color: colors.textSecondary,
     fontSize: 12,
     lineHeight: 18,
     maxWidth: 220,
@@ -413,7 +424,7 @@ const s = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(126,217,87,0.1)",
+    backgroundColor: colors.primaryDim,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 12,
@@ -425,33 +436,37 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   badge: {
-    backgroundColor: "#2A2A2A",
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
   },
-  badgeText: { color: "#9A9A9A", fontSize: 11, fontWeight: "600" },
+  badgeText: { color: colors.textSecondary, fontSize: 11, fontWeight: "600" },
   programBtns: { flexDirection: "row", gap: 10 },
-  btnGreen: {
+  btnPrimary: {
     flex: 1,
-    backgroundColor: "#7ED957",
+    backgroundColor: colors.primary,
     borderRadius: 50,
     paddingVertical: 12,
     alignItems: "center",
   },
-  btnGreenText: { color: "#0D0D0D", fontWeight: "700", fontSize: 13 },
+  btnPrimaryText: {
+    color: colors.textOnPrimary,
+    fontWeight: "700",
+    fontSize: 13,
+  },
   btnGhost: {
     flex: 1,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.button,
     borderRadius: 50,
     paddingVertical: 12,
     alignItems: "center",
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
   },
-  btnGhostText: { color: "#fff", fontWeight: "500", fontSize: 13 },
+  btnGhostText: { color: colors.textPrimary, fontWeight: "500", fontSize: 13 },
   fab: {
     position: "absolute",
     bottom: 96,
@@ -459,10 +474,10 @@ const s = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 27,
-    backgroundColor: "#7ED957",
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#7ED957",
+    shadowColor: colors.primary,
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 8,

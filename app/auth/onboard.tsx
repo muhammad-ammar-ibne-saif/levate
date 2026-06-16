@@ -10,31 +10,45 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { Button } from "@/components/ui/Button";
+import { colors, spacing } from "../../lib/theme";
 
 const { width } = Dimensions.get("window");
 
-const slides = [
+type IconName = React.ComponentProps<typeof Ionicons>["name"];
+
+const slides: {
+  id: string;
+  icon: IconName;
+  tag: string;
+  title: string;
+  highlight: string;
+  desc: string;
+}[] = [
   {
     id: "1",
-    tag: "Adaptive Training",
-    title: "Train Smarter for",
-    highlight: "Every Race Ahead",
-    desc: "Build your hybrid program around your race, your schedule, and your current fitness.",
+    icon: "trending-up-outline",
+    tag: "Your Next Level Of Fitness",
+    title: "The door is open —",
+    highlight: "the people inside are the reason you stay",
+    desc: "This app is the door. The people within are the reason you stay, and why you become fitter than you thought possible.",
   },
   {
     id: "2",
-    tag: "Intelligent Plans",
-    title: "Your Plan Adapts",
-    highlight: "As You Train",
-    desc: "We adjust weekly workouts when you miss sessions, recover slower, or improve faster.",
+    icon: "compass-outline",
+    tag: "A Plan That Knows Your Life",
+    title: "No guesswork.",
+    highlight: "Just clarity",
+    desc: "We find out your goal, your availability and your fitness level — so you're always clear on how to get fitter.",
   },
   {
     id: "3",
-    tag: "Clear Insights",
-    title: "See Progress",
-    highlight: "That Matters",
-    desc: "Track strength, endurance, and readiness in one simple dashboard built for performance.",
+    icon: "people-outline",
+    tag: "Join the Community",
+    title: "Ambitious athletes,",
+    highlight: "all levelling up together",
+    desc: "The people within this ecosystem want to level up — and help others do the same. Complete synergy.",
   },
 ];
 
@@ -54,9 +68,9 @@ export default function OnboardScreen() {
   const renderSlide: ListRenderItem<(typeof slides)[0]> = ({ item }) => (
     <View style={[s.slide, { width }]}>
       <View style={s.imageBox}>
-        <View style={s.avatarCircle} />
-        <View style={s.avatarBody} />
-        <View style={s.avatarLegs} />
+        <View style={s.iconCircle}>
+          <Ionicons name={item.icon} size={36} color={colors.primary} />
+        </View>
       </View>
       <View style={s.tagRow}>
         <Text style={s.tagText}>{item.tag}</Text>
@@ -78,7 +92,7 @@ export default function OnboardScreen() {
 
       <View style={s.logoRow}>
         <View style={s.logoBox}>
-          <Text style={s.logoL}>L</Text>
+          <Ionicons name="triangle" size={18} color={colors.textOnPrimary} />
         </View>
         <Text style={s.logoText}>Team L-Evate</Text>
       </View>
@@ -111,9 +125,13 @@ export default function OnboardScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
-  skipBtn: { alignItems: "flex-end", paddingHorizontal: 24, paddingTop: 8 },
-  skipText: { color: "#5A5A5A", fontSize: 14 },
+  safe: { flex: 1, backgroundColor: colors.background },
+  skipBtn: {
+    alignItems: "flex-end",
+    paddingHorizontal: spacing.xl,
+    paddingTop: 8,
+  },
+  skipText: { color: colors.textTertiary, fontSize: 14 },
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -125,47 +143,35 @@ const s = StyleSheet.create({
   logoBox: {
     width: 34,
     height: 34,
-    backgroundColor: "#7ED957",
+    backgroundColor: colors.primary,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
-  logoL: { color: "#0D0D0D", fontWeight: "800", fontSize: 18 },
-  logoText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  logoText: { color: colors.textPrimary, fontWeight: "700", fontSize: 16 },
   slide: { paddingHorizontal: 28, paddingTop: 8 },
   imageBox: {
     height: 220,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     borderRadius: 24,
     marginBottom: 28,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
   },
-  avatarCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 2,
-    borderColor: "#7ED957",
-    marginBottom: 8,
-  },
-  avatarBody: {
-    width: 2,
-    height: 60,
-    backgroundColor: "rgba(126,217,87,0.4)",
-    borderRadius: 1,
-  },
-  avatarLegs: {
-    width: 40,
-    height: 2,
-    backgroundColor: "rgba(126,217,87,0.3)",
-    borderRadius: 1,
-    marginTop: 4,
+  iconCircle: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: colors.primaryDim,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(122,61,240,0.25)",
   },
   tagRow: {
-    backgroundColor: "rgba(126,217,87,0.12)",
+    backgroundColor: colors.primaryDim,
     alignSelf: "flex-start",
     borderRadius: 20,
     paddingHorizontal: 12,
@@ -173,24 +179,34 @@ const s = StyleSheet.create({
     marginBottom: 14,
   },
   tagText: {
-    color: "#7ED957",
+    color: colors.primary,
     fontSize: 11,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 1.5,
   },
-  title: { color: "#fff", fontSize: 28, fontWeight: "800", lineHeight: 34 },
+  title: {
+    color: colors.textPrimary,
+    fontSize: 28,
+    fontWeight: "800",
+    lineHeight: 34,
+  },
   titleHighlight: {
-    color: "#7ED957",
+    color: colors.primary,
     fontSize: 28,
     fontWeight: "800",
     fontStyle: "italic",
     lineHeight: 34,
     marginBottom: 12,
   },
-  desc: { color: "#9A9A9A", fontSize: 14, lineHeight: 22 },
+  desc: { color: colors.textSecondary, fontSize: 14, lineHeight: 22 },
   bottom: { paddingHorizontal: 28, paddingBottom: 32, gap: 16 },
   dotsRow: { flexDirection: "row", gap: 6 },
-  dot: { width: 8, height: 4, borderRadius: 2, backgroundColor: "#2A2A2A" },
-  dotActive: { width: 24, backgroundColor: "#7ED957" },
+  dot: {
+    width: 8,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.surfaceAlt,
+  },
+  dotActive: { width: 24, backgroundColor: colors.primary },
 });
