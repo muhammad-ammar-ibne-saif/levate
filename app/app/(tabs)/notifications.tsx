@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { colors, radius } from "@/lib/theme";
 import api from "@/lib/api";
 
 interface Notif {
@@ -20,55 +22,13 @@ interface Notif {
   type: "workout" | "streak" | "progress" | "system";
 }
 
-const ICON: Record<string, string> = {
-  workout: "⚡",
-  streak: "⭐",
-  progress: "📈",
-  system: "🔔",
+type IconName = React.ComponentProps<typeof Ionicons>["name"];
+const ICON: Record<string, IconName> = {
+  workout: "flash-outline",
+  streak: "star-outline",
+  progress: "trending-up-outline",
+  system: "notifications-outline",
 };
-
-const DEMO: Notif[] = [
-  {
-    _id: "1",
-    title: "Time to train",
-    body: "Your hybrid session is ready.",
-    createdAt: new Date(Date.now() - 2 * 60000).toISOString(),
-    read: false,
-    type: "workout",
-  },
-  {
-    _id: "2",
-    title: "Streak alert",
-    body: "You're one workout away from keeping your streak alive.",
-    createdAt: new Date(Date.now() - 15 * 60000).toISOString(),
-    read: false,
-    type: "streak",
-  },
-  {
-    _id: "3",
-    title: "Session waiting",
-    body: "Today's session is waiting — tap to start.",
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-    read: true,
-    type: "workout",
-  },
-  {
-    _id: "4",
-    title: "Progress update",
-    body: "Week 5 complete! Your endurance score improved by 12%.",
-    createdAt: new Date(Date.now() - 7200000).toISOString(),
-    read: true,
-    type: "progress",
-  },
-  {
-    _id: "5",
-    title: "Rest day",
-    body: "Rest day tomorrow. Recovery is part of the plan.",
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    read: true,
-    type: "system",
-  },
-];
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -81,18 +41,15 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function NotificationsScreen() {
-  const [notifs, setNotifs] = useState<Notif[]>(DEMO);
+  const [notifs, setNotifs] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchNotifs = async () => {
     try {
       const { data } = await api.get("/api/notifications");
-      if (data.notifications?.length > 0) {
-        setNotifs(data.notifications);
-      }
+      setNotifs(data.notifications || []);
     } catch {
-      // Keep demo data
     } finally {
       setLoading(false);
     }
@@ -136,7 +93,7 @@ export default function NotificationsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color="#7ED957" style={{ marginTop: 40 }} />
+        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={notifs}
@@ -146,13 +103,17 @@ export default function NotificationsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#7ED957"
+              tintColor={colors.primary}
             />
           }
           renderItem={({ item }) => (
             <TouchableOpacity style={s.item} onPress={() => markRead(item._id)}>
               <View style={s.iconWrap}>
-                <Text style={s.icon}>{ICON[item.type] || "🔔"}</Text>
+                <Ionicons
+                  name={ICON[item.type] || "notifications-outline"}
+                  size={18}
+                  color={colors.primary}
+                />
                 {!item.read && <View style={s.dot} />}
               </View>
               <View style={{ flex: 1 }}>
@@ -167,7 +128,11 @@ export default function NotificationsScreen() {
           ItemSeparatorComponent={() => <View style={s.sep} />}
           ListEmptyComponent={
             <View style={s.empty}>
-              <Text style={s.emptyIcon}>🔔</Text>
+              <Ionicons
+                name="notifications-outline"
+                size={40}
+                color={colors.textTertiary}
+              />
               <Text style={s.emptyText}>No notifications yet</Text>
             </View>
           }
@@ -178,7 +143,7 @@ export default function NotificationsScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
+  safe: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -187,8 +152,8 @@ const s = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 12,
   },
-  heading: { color: "#fff", fontSize: 20, fontWeight: "700" },
-  markAll: { color: "#7ED957", fontSize: 12, fontWeight: "600" },
+  heading: { color: colors.textPrimary, fontSize: 20, fontWeight: "700" },
+  markAll: { color: colors.primary, fontSize: 12, fontWeight: "600" },
   item: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -199,12 +164,11 @@ const s = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
   },
-  icon: { fontSize: 18 },
   dot: {
     position: "absolute",
     top: 0,
@@ -212,16 +176,25 @@ const s = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "#7ED957",
+    backgroundColor: colors.primary,
     borderWidth: 2,
-    borderColor: "#0D0D0D",
+    borderColor: colors.background,
   },
-  title: { color: "#9A9A9A", fontSize: 13, fontWeight: "500", marginBottom: 2 },
-  titleUnread: { color: "#fff" },
-  body: { color: "#9A9A9A", fontSize: 12, lineHeight: 18, marginBottom: 4 },
-  time: { color: "#5A5A5A", fontSize: 11 },
-  sep: { height: 0.5, backgroundColor: "rgba(255,255,255,0.08)" },
-  empty: { alignItems: "center", marginTop: 60 },
-  emptyIcon: { fontSize: 40, marginBottom: 12 },
-  emptyText: { color: "#5A5A5A", fontSize: 14 },
+  title: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+  titleUnread: { color: colors.textPrimary },
+  body: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  time: { color: colors.textTertiary, fontSize: 11 },
+  sep: { height: 0.5, backgroundColor: colors.border },
+  empty: { alignItems: "center", marginTop: 60, gap: 12 },
+  emptyText: { color: colors.textTertiary, fontSize: 14 },
 });

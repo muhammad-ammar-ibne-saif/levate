@@ -8,9 +8,11 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuthStore } from "@/store/auth";
+import { colors, spacing } from "@/lib/theme";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -32,7 +34,7 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <TouchableOpacity style={s.back} onPress={() => router.back()}>
-          <Text style={s.backIcon}>‹</Text>
+          <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </TouchableOpacity>
 
         <Text style={s.title}>Welcome back</Text>
@@ -65,6 +67,11 @@ export default function LoginScreen() {
 
         {error ? (
           <View style={s.errBox}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={16}
+              color={colors.danger}
+            />
             <Text style={s.errText}>{error}</Text>
           </View>
         ) : null}
@@ -83,25 +90,37 @@ export default function LoginScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
-  scroll: { padding: 24 },
+  safe: { flex: 1, backgroundColor: colors.background },
+  scroll: { padding: spacing.xl },
   back: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
-  backIcon: { color: "#fff", fontSize: 26, lineHeight: 30 },
-  title: { color: "#fff", fontSize: 26, fontWeight: "800", marginBottom: 6 },
-  sub: { color: "#9A9A9A", fontSize: 14, lineHeight: 22, marginBottom: 28 },
+  title: {
+    color: colors.textPrimary,
+    fontSize: 26,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  sub: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: spacing.xl,
+  },
   forgotBtn: { alignSelf: "flex-end", marginBottom: 20, marginTop: -4 },
-  forgotText: { color: "#7ED957", fontSize: 13, fontWeight: "600" },
+  forgotText: { color: colors.primary, fontSize: 13, fontWeight: "600" },
   errBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     backgroundColor: "rgba(239,68,68,0.1)",
     borderWidth: 0.5,
     borderColor: "rgba(239,68,68,0.3)",
@@ -109,12 +128,12 @@ const s = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
   },
-  errText: { color: "#EF4444", fontSize: 13 },
+  errText: { color: colors.danger, fontSize: 13, flex: 1 },
   footer: {
     textAlign: "center",
-    color: "#9A9A9A",
+    color: colors.textSecondary,
     fontSize: 13,
     marginTop: 20,
   },
-  link: { color: "#7ED957", fontWeight: "600" },
+  link: { color: colors.primary, fontWeight: "600" },
 });

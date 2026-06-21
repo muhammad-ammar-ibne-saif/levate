@@ -9,7 +9,9 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/auth";
+import { colors, radius, spacing } from "@/lib/theme";
 
 export default function SettingsScreen() {
   const { logout, user } = useAuthStore();
@@ -43,25 +45,30 @@ export default function SettingsScreen() {
           <Text style={s.headingText}>Settings</Text>
         </View>
 
-        {/* Admin Panel — only visible to admins */}
         {user?.isAdmin && (
           <>
-            <Text style={s.sectionLabel}>⚡ Admin</Text>
+            <Text style={s.sectionLabel}>Admin</Text>
             <View style={s.section}>
               <TouchableOpacity
                 style={s.row}
                 onPress={() => router.push("/app/admin/dashboard")}
               >
-                <View
-                  style={[s.icon, { backgroundColor: "rgba(249,115,22,0.1)" }]}
-                >
-                  <Text style={{ fontSize: 18 }}>🛡️</Text>
+                <View style={[s.icon, { backgroundColor: colors.primaryDim }]}>
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={18}
+                    color={colors.primary}
+                  />
                 </View>
                 <View style={s.rowInfo}>
                   <Text style={s.rowLabel}>Admin Panel</Text>
                   <Text style={s.rowSub}>Users, stats, notifications</Text>
                 </View>
-                <Text style={s.arrow}>›</Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={colors.textTertiary}
+                />
               </TouchableOpacity>
             </View>
           </>
@@ -73,41 +80,55 @@ export default function SettingsScreen() {
             style={s.row}
             onPress={() => router.push("/app/settings/change-password")}
           >
-            <View
-              style={[s.icon, { backgroundColor: "rgba(126,217,87,0.08)" }]}
-            >
-              <Text style={{ fontSize: 18 }}>🔒</Text>
+            <View style={[s.icon, { backgroundColor: colors.primaryDim }]}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={18}
+                color={colors.primary}
+              />
             </View>
             <View style={s.rowInfo}>
               <Text style={s.rowLabel}>Change password</Text>
               <Text style={s.rowSub}>Update your login credentials</Text>
             </View>
-            <Text style={s.arrow}>›</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={colors.textTertiary}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             style={[s.row, s.rowBorder]}
             onPress={() => router.push("/app/(tabs)/profile")}
           >
-            <View
-              style={[s.icon, { backgroundColor: "rgba(91,156,246,0.08)" }]}
-            >
-              <Text style={{ fontSize: 18 }}>👤</Text>
+            <View style={[s.icon, { backgroundColor: colors.primaryDim }]}>
+              <Ionicons
+                name="person-outline"
+                size={18}
+                color={colors.primary}
+              />
             </View>
             <View style={s.rowInfo}>
               <Text style={s.rowLabel}>Edit profile</Text>
               <Text style={s.rowSub}>Name, email, photo</Text>
             </View>
-            <Text style={s.arrow}>›</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={colors.textTertiary}
+            />
           </TouchableOpacity>
         </View>
 
         <Text style={s.sectionLabel}>Preferences</Text>
         <View style={s.section}>
           <View style={s.row}>
-            <View
-              style={[s.icon, { backgroundColor: "rgba(249,115,22,0.08)" }]}
-            >
-              <Text style={{ fontSize: 18 }}>🔔</Text>
+            <View style={[s.icon, { backgroundColor: colors.primaryDim }]}>
+              <Ionicons
+                name="notifications-outline"
+                size={18}
+                color={colors.primary}
+              />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.rowLabel}>Notifications</Text>
@@ -116,10 +137,8 @@ export default function SettingsScreen() {
             <Toggle on={notifOn} onPress={() => setNotifOn((v) => !v)} />
           </View>
           <View style={[s.row, s.rowBorder]}>
-            <View
-              style={[s.icon, { backgroundColor: "rgba(126,217,87,0.08)" }]}
-            >
-              <Text style={{ fontSize: 18 }}>⏱</Text>
+            <View style={[s.icon, { backgroundColor: colors.primaryDim }]}>
+              <Ionicons name="timer-outline" size={18} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.rowLabel}>Rest timers</Text>
@@ -133,10 +152,16 @@ export default function SettingsScreen() {
         <View style={s.section}>
           <TouchableOpacity style={s.row} onPress={handleLogout}>
             <View style={[s.icon, { backgroundColor: "rgba(239,68,68,0.08)" }]}>
-              <Text style={{ fontSize: 18 }}>🚪</Text>
+              <Ionicons
+                name="log-out-outline"
+                size={18}
+                color={colors.danger}
+              />
             </View>
             <View style={s.rowInfo}>
-              <Text style={[s.rowLabel, { color: "#EF4444" }]}>Sign Out</Text>
+              <Text style={[s.rowLabel, { color: colors.danger }]}>
+                Sign Out
+              </Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -150,23 +175,23 @@ const t = StyleSheet.create({
     width: 48,
     height: 27,
     borderRadius: 14,
-    backgroundColor: "#2A2A2A",
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     justifyContent: "center",
     paddingHorizontal: 3,
   },
-  trackOn: { backgroundColor: "#7ED957", borderColor: "#7ED957" },
+  trackOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   knob: { width: 21, height: 21, borderRadius: 11, backgroundColor: "#fff" },
   knobOn: { alignSelf: "flex-end" },
 });
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
+  safe: { flex: 1, backgroundColor: colors.background },
   heading: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
-  headingText: { color: "#fff", fontSize: 20, fontWeight: "700" },
+  headingText: { color: colors.textPrimary, fontSize: 20, fontWeight: "700" },
   sectionLabel: {
-    color: "#5A5A5A",
+    color: colors.textTertiary,
     fontSize: 11,
     fontWeight: "700",
     textTransform: "uppercase",
@@ -177,23 +202,22 @@ const s = StyleSheet.create({
   },
   section: {
     marginHorizontal: 20,
-    backgroundColor: "#1E1E1E",
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     overflow: "hidden",
   },
   row: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
-  rowBorder: { borderTopWidth: 0.5, borderTopColor: "rgba(255,255,255,0.1)" },
+  rowBorder: { borderTopWidth: 0.5, borderTopColor: colors.border },
   icon: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: radius.sm,
     alignItems: "center",
     justifyContent: "center",
   },
   rowInfo: { flex: 1 },
-  rowLabel: { color: "#fff", fontSize: 14, fontWeight: "500" },
-  rowSub: { color: "#5A5A5A", fontSize: 12, marginTop: 2 },
-  arrow: { color: "#5A5A5A", fontSize: 20 },
+  rowLabel: { color: colors.textPrimary, fontSize: 14, fontWeight: "500" },
+  rowSub: { color: colors.textTertiary, fontSize: 12, marginTop: 2 },
 });

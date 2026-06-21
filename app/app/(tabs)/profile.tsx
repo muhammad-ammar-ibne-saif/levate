@@ -8,10 +8,12 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/auth";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { router } from "expo-router";
+import { colors, radius, spacing } from "@/lib/theme";
 import api from "@/lib/api";
 
 export default function ProfileScreen() {
@@ -31,19 +33,17 @@ export default function ProfileScreen() {
 
   const set = (key: keyof typeof form) => (val: string) =>
     setForm((f) => ({ ...f, [key]: val }));
-
   const initials = (
     (form.firstName[0] || "") + (form.lastName[0] || "")
   ).toUpperCase();
 
-  // Fetch real user stats
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const { data } = await api.get("/api/workouts/history");
         if (data.sessions) {
           const totalMins = data.sessions.reduce(
-            (acc: number, s: any) => acc + (s.durationMinutes || 0),
+            (acc: number, sess: any) => acc + (sess.durationMinutes || 0),
             0
           );
           setStats({
@@ -71,7 +71,6 @@ export default function ProfileScreen() {
         style: "destructive",
         onPress: async () => {
           await logout();
-          // Replace entire navigation stack — user cannot go back
           router.replace("/auth/welcome");
         },
       },
@@ -88,7 +87,6 @@ export default function ProfileScreen() {
           <Text style={s.headingText}>Profile</Text>
         </View>
 
-        {/* Avatar */}
         <View style={s.avatarWrap}>
           <View style={s.avatar}>
             <Text style={s.initials}>{initials || "U"}</Text>
@@ -99,7 +97,6 @@ export default function ProfileScreen() {
           <Text style={s.handle}>@{user?.email?.split("@")[0] || "user"}</Text>
         </View>
 
-        {/* Stats row */}
         <View style={s.statsRow}>
           <View style={s.statCard}>
             <Text style={s.statVal}>{stats.sessions}</Text>
@@ -117,7 +114,6 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Form */}
         <View style={s.form}>
           <View style={s.nameRow}>
             <View style={{ flex: 1 }}>
@@ -157,18 +153,24 @@ export default function ProfileScreen() {
             loading={isLoading}
           />
           {saved && (
-            <Text style={s.savedText}>✓ Profile updated successfully!</Text>
+            <View style={s.savedRow}>
+              <Ionicons
+                name="checkmark-circle"
+                size={16}
+                color={colors.primary}
+              />
+              <Text style={s.savedText}>Profile updated successfully!</Text>
+            </View>
           )}
         </View>
 
-        {/* Logout button — clearly separated */}
         <View style={s.logoutSection}>
           <TouchableOpacity
             style={s.logoutBtn}
             onPress={handleLogout}
             activeOpacity={0.75}
           >
-            <Text style={s.logoutIcon}>🚪</Text>
+            <Ionicons name="log-out-outline" size={18} color={colors.danger} />
             <Text style={s.logoutText}>Sign Out</Text>
           </TouchableOpacity>
           <Text style={s.logoutHint}>
@@ -181,67 +183,78 @@ export default function ProfileScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
+  safe: { flex: 1, backgroundColor: colors.background },
   heading: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
-  headingText: { color: "#fff", fontSize: 20, fontWeight: "700" },
+  headingText: { color: colors.textPrimary, fontSize: 20, fontWeight: "700" },
   avatarWrap: { alignItems: "center", paddingVertical: 16 },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: "#7ED957",
+    borderColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
   },
-  initials: { color: "#7ED957", fontSize: 26, fontWeight: "800" },
-  name: { color: "#fff", fontSize: 20, fontWeight: "700", marginBottom: 2 },
-  handle: { color: "#5A5A5A", fontSize: 13 },
+  initials: { color: colors.primary, fontSize: 26, fontWeight: "800" },
+  name: {
+    color: colors.textPrimary,
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  handle: { color: colors.textTertiary, fontSize: 13 },
   statsRow: {
     flexDirection: "row",
     marginHorizontal: 20,
-    backgroundColor: "#1E1E1E",
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     marginBottom: 24,
     overflow: "hidden",
   },
   statCard: { flex: 1, alignItems: "center", paddingVertical: 16 },
-  statVal: { color: "#fff", fontSize: 22, fontWeight: "800", marginBottom: 2 },
+  statVal: {
+    color: colors.textPrimary,
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 2,
+  },
   statLabel: {
-    color: "#5A5A5A",
+    color: colors.textTertiary,
     fontSize: 11,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  statDivider: { width: 0.5, backgroundColor: "rgba(255,255,255,0.1)" },
+  statDivider: { width: 0.5, backgroundColor: colors.border },
   form: { paddingHorizontal: 20 },
   nameRow: { flexDirection: "row", gap: 10 },
-  savedText: {
-    color: "#7ED957",
-    textAlign: "center",
-    fontSize: 13,
+  savedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
     marginTop: 12,
   },
+  savedText: { color: colors.primary, fontSize: 13 },
   logoutSection: { marginHorizontal: 20, marginTop: 32 },
   logoutBtn: {
     backgroundColor: "rgba(239,68,68,0.08)",
     borderWidth: 0.5,
     borderColor: "rgba(239,68,68,0.25)",
-    borderRadius: 16,
+    borderRadius: radius.lg,
     paddingVertical: 16,
     paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
-  logoutIcon: { fontSize: 18 },
-  logoutText: { color: "#EF4444", fontSize: 15, fontWeight: "600" },
+  logoutText: { color: colors.danger, fontSize: 15, fontWeight: "600" },
   logoutHint: {
-    color: "#5A5A5A",
+    color: colors.textTertiary,
     fontSize: 12,
     textAlign: "center",
     marginTop: 10,

@@ -1,9 +1,18 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Alert,
+} from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { colors, spacing, radius } from "@/lib/theme";
 import api from "@/lib/api";
 
 type Step = "email" | "code" | "newpass" | "done";
@@ -17,42 +26,62 @@ export default function ForgotPasswordScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Step 1 — send reset code to email
   const handleSendCode = async () => {
     setError("");
-    if (!email.trim()) { setError("Please enter your email."); return; }
-    if (!/\S+@\S+\.\S+/.test(email)) { setError("Enter a valid email address."); return; }
+    if (!email.trim()) {
+      setError("Please enter your email.");
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setError("Enter a valid email address.");
+      return;
+    }
     setLoading(true);
     try {
       await api.post("/api/auth/forgot-password", { email: email.trim() });
       setStep("code");
     } catch (e: any) {
-      setError(e.response?.data?.message || "Could not send reset code. Check your email.");
+      setError(
+        e.response?.data?.message ||
+          "Could not send reset code. Check your email."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 2 — verify code
   const handleVerifyCode = async () => {
     setError("");
-    if (!code.trim() || code.length < 4) { setError("Enter the 6-digit code from your email."); return; }
+    if (!code.trim() || code.length < 4) {
+      setError("Enter the 6-digit code from your email.");
+      return;
+    }
     setLoading(true);
     try {
-      await api.post("/api/auth/verify-reset-code", { email: email.trim(), code: code.trim() });
+      await api.post("/api/auth/verify-reset-code", {
+        email: email.trim(),
+        code: code.trim(),
+      });
       setStep("newpass");
     } catch (e: any) {
-      setError(e.response?.data?.message || "Invalid or expired code. Try again.");
+      setError(
+        e.response?.data?.message || "Invalid or expired code. Try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 3 — set new password
   const handleResetPassword = async () => {
     setError("");
-    if (!newPass || newPass.length < 6) { setError("Password must be at least 6 characters."); return; }
-    if (newPass !== confirmPass) { setError("Passwords do not match."); return; }
+    if (!newPass || newPass.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    if (newPass !== confirmPass) {
+      setError("Passwords do not match.");
+      return;
+    }
     setLoading(true);
     try {
       await api.post("/api/auth/reset-password", {
@@ -62,7 +91,9 @@ export default function ForgotPasswordScreen() {
       });
       setStep("done");
     } catch (e: any) {
-      setError(e.response?.data?.message || "Failed to reset password. Try again.");
+      setError(
+        e.response?.data?.message || "Failed to reset password. Try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -83,19 +114,26 @@ export default function ForgotPasswordScreen() {
 
   return (
     <SafeAreaView style={s.safe}>
-      <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-
-        <TouchableOpacity style={s.back} onPress={() => step === "email" ? router.back() : setStep("email")}>
-          <Text style={s.backIcon}>‹</Text>
+      <ScrollView
+        contentContainerStyle={s.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
+        <TouchableOpacity
+          style={s.back}
+          onPress={() => (step === "email" ? router.back() : setStep("email"))}
+        >
+          <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </TouchableOpacity>
 
-        {/* ── Step 1: Email ── */}
         {step === "email" && (
           <>
-            <View style={s.iconWrap}><Text style={s.icon}>🔑</Text></View>
+            <View style={s.iconWrap}>
+              <Ionicons name="key-outline" size={40} color={colors.primary} />
+            </View>
             <Text style={s.title}>Forgot Password?</Text>
             <Text style={s.sub}>
-              Enter your email address and we'll send you a 6-digit code to reset your password.
+              Enter your email address and we'll send you a 6-digit code to
+              reset your password.
             </Text>
             <Input
               label="Email Address"
@@ -106,18 +144,23 @@ export default function ForgotPasswordScreen() {
               autoCapitalize="none"
             />
             {error ? <Text style={s.errText}>{error}</Text> : null}
-            <Button label="Send Reset Code" onPress={handleSendCode} loading={loading} />
+            <Button
+              label="Send Reset Code"
+              onPress={handleSendCode}
+              loading={loading}
+            />
           </>
         )}
 
-        {/* ── Step 2: Code ── */}
         {step === "code" && (
           <>
-            <View style={s.iconWrap}><Text style={s.icon}>📧</Text></View>
+            <View style={s.iconWrap}>
+              <Ionicons name="mail-outline" size={40} color={colors.primary} />
+            </View>
             <Text style={s.title}>Check your email</Text>
             <Text style={s.sub}>
               We sent a 6-digit code to{" "}
-              <Text style={{ color: "#7ED957" }}>{email}</Text>
+              <Text style={{ color: colors.primary }}>{email}</Text>
               {". "}Enter it below.
             </Text>
             <Input
@@ -129,19 +172,34 @@ export default function ForgotPasswordScreen() {
               maxLength={6}
             />
             {error ? <Text style={s.errText}>{error}</Text> : null}
-            <Button label="Verify Code" onPress={handleVerifyCode} loading={loading} />
-            <TouchableOpacity style={s.resendBtn} onPress={resendCode} disabled={loading}>
+            <Button
+              label="Verify Code"
+              onPress={handleVerifyCode}
+              loading={loading}
+            />
+            <TouchableOpacity
+              style={s.resendBtn}
+              onPress={resendCode}
+              disabled={loading}
+            >
               <Text style={s.resendText}>Didn't receive it? Resend code</Text>
             </TouchableOpacity>
           </>
         )}
 
-        {/* ── Step 3: New password ── */}
         {step === "newpass" && (
           <>
-            <View style={s.iconWrap}><Text style={s.icon}>🔒</Text></View>
+            <View style={s.iconWrap}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={40}
+                color={colors.primary}
+              />
+            </View>
             <Text style={s.title}>Set new password</Text>
-            <Text style={s.sub}>Choose a strong password that you haven't used before.</Text>
+            <Text style={s.sub}>
+              Choose a strong password that you haven't used before.
+            </Text>
             <Input
               label="New Password"
               placeholder="Enter new password"
@@ -157,17 +215,23 @@ export default function ForgotPasswordScreen() {
               secureTextEntry
             />
             {error ? <Text style={s.errText}>{error}</Text> : null}
-            <Button label="Reset Password" onPress={handleResetPassword} loading={loading} />
+            <Button
+              label="Reset Password"
+              onPress={handleResetPassword}
+              loading={loading}
+            />
           </>
         )}
 
-        {/* ── Step 4: Done ── */}
         {step === "done" && (
           <View style={s.doneWrap}>
-            <View style={s.doneCircle}><Text style={s.doneTick}>✓</Text></View>
+            <View style={s.doneCircle}>
+              <Ionicons name="checkmark" size={36} color={colors.primary} />
+            </View>
             <Text style={s.title}>Password reset!</Text>
             <Text style={s.sub}>
-              Your password has been updated successfully. You can now sign in with your new password.
+              Your password has been updated successfully. You can now sign in
+              with your new password.
             </Text>
             <Button
               label="Back to Login"
@@ -175,25 +239,58 @@ export default function ForgotPasswordScreen() {
             />
           </View>
         )}
-
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
-  scroll: { padding: 24 },
-  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#1E1E1E", borderWidth: 0.5, borderColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center", marginBottom: 28 },
-  backIcon: { color: "#fff", fontSize: 26, lineHeight: 30 },
+  safe: { flex: 1, backgroundColor: colors.background },
+  scroll: { padding: spacing.xl },
+  back: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.xxl,
+  },
   iconWrap: { alignItems: "center", marginBottom: 20 },
-  icon: { fontSize: 52 },
-  title: { color: "#fff", fontSize: 26, fontWeight: "800", marginBottom: 8, textAlign: "center" },
-  sub: { color: "#9A9A9A", fontSize: 14, lineHeight: 22, marginBottom: 28, textAlign: "center" },
-  errText: { color: "#EF4444", fontSize: 13, marginBottom: 14, textAlign: "center" },
+  title: {
+    color: colors.textPrimary,
+    fontSize: 26,
+    fontWeight: "800",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  sub: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: spacing.xl,
+    textAlign: "center",
+  },
+  errText: {
+    color: colors.danger,
+    fontSize: 13,
+    marginBottom: 14,
+    textAlign: "center",
+  },
   resendBtn: { marginTop: 16, alignItems: "center" },
-  resendText: { color: "#7ED957", fontSize: 13, fontWeight: "600" },
+  resendText: { color: colors.primary, fontSize: 13, fontWeight: "600" },
   doneWrap: { alignItems: "center", paddingTop: 20 },
-  doneCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(126,217,87,0.1)", borderWidth: 2, borderColor: "rgba(126,217,87,0.3)", alignItems: "center", justifyContent: "center", marginBottom: 24 },
-  doneTick: { color: "#7ED957", fontSize: 36, fontWeight: "800" },
+  doneCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.primaryDim,
+    borderWidth: 2,
+    borderColor: "rgba(106,83,252,0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
 });

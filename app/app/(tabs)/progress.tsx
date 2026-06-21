@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import { useAuthStore } from "@/store/auth";
+import { colors, radius, spacing } from "@/lib/theme";
 import api from "@/lib/api";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -39,13 +40,11 @@ export default function ProgressScreen() {
   const fetchProgress = async () => {
     try {
       const { data } = await api.get("/api/workouts/progress");
-
       const byWeek = data.byWeek || {};
       const currentWeek = data.currentWeek || 1;
       const totalWeeks = 8;
       const percentage = Math.round((currentWeek / totalWeeks) * 100);
 
-      // Build bar arrays from real week data
       const strengthBars = Array(8).fill(0);
       const enduranceBars = Array(8).fill(0);
       const consistencyBars = Array(8).fill(0);
@@ -59,13 +58,11 @@ export default function ProgressScreen() {
         }
       });
 
-      // Build real completed days for THIS week using session timestamps
       const { data: histData } = await api.get("/api/workouts/history");
       const sessions = histData.sessions || [];
 
-      // Get start of this ISO week (Monday)
       const now = new Date();
-      const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+      const dayOfWeek = now.getDay();
       const monday = new Date(now);
       monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
       monday.setHours(0, 0, 0, 0);
@@ -75,8 +72,8 @@ export default function ProgressScreen() {
         day.setDate(monday.getDate() + i);
         const nextDay = new Date(day);
         nextDay.setDate(day.getDate() + 1);
-        return sessions.some((s: any) => {
-          const d = new Date(s.createdAt);
+        return sessions.some((sess: any) => {
+          const d = new Date(sess.createdAt);
           return d >= day && d < nextDay;
         });
       });
@@ -96,7 +93,6 @@ export default function ProgressScreen() {
         },
       });
     } catch {
-      // Keep default empty state on error
     } finally {
       setLoading(false);
     }
@@ -116,10 +112,9 @@ export default function ProgressScreen() {
     `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Athlete";
   const bars = stats.barData[tab];
   const max = Math.max(...bars, 1);
-
   const todayIndex = (() => {
     const d = new Date().getDay();
-    return d === 0 ? 6 : d - 1; // Mon=0 … Sun=6
+    return d === 0 ? 6 : d - 1;
   })();
 
   const size = 160,
@@ -136,21 +131,19 @@ export default function ProgressScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#7ED957"
+            tintColor={colors.primary}
           />
         }
       >
-        {/* Header */}
         <View style={s.topRow}>
           <Text style={s.heading}>Your Progress</Text>
           <Text style={s.weekly}>Weekly</Text>
         </View>
 
         {loading ? (
-          <ActivityIndicator color="#7ED957" style={{ marginTop: 60 }} />
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 60 }} />
         ) : (
           <>
-            {/* Progress ring */}
             <View style={s.ringWrap}>
               <Svg
                 width={size}
@@ -161,7 +154,7 @@ export default function ProgressScreen() {
                   cx={size / 2}
                   cy={size / 2}
                   r={r}
-                  stroke="#1E1E1E"
+                  stroke={colors.surfaceAlt}
                   strokeWidth={sw}
                   fill="none"
                 />
@@ -169,7 +162,7 @@ export default function ProgressScreen() {
                   cx={size / 2}
                   cy={size / 2}
                   r={r}
-                  stroke="#7ED957"
+                  stroke={colors.primary}
                   strokeWidth={sw}
                   fill="none"
                   strokeLinecap="round"
@@ -190,7 +183,6 @@ export default function ProgressScreen() {
               @{user?.email?.split("@")[0] || "athlete"}
             </Text>
 
-            {/* Calendar — REAL data */}
             <View style={s.calWrap}>
               <Text style={s.calLabel}>This week's training</Text>
               <View style={s.calRow}>
@@ -210,7 +202,7 @@ export default function ProgressScreen() {
                         {done && (
                           <Text
                             style={{
-                              color: "#0D0D0D",
+                              color: colors.textOnPrimary,
                               fontSize: 11,
                               fontWeight: "800",
                             }}
@@ -225,7 +217,6 @@ export default function ProgressScreen() {
               </View>
             </View>
 
-            {/* Performance */}
             <View style={s.perfWrap}>
               <Text style={s.perfSub}>
                 See how your strength, endurance, and consistency are improving
@@ -233,7 +224,6 @@ export default function ProgressScreen() {
               </Text>
               <Text style={s.perfTitle}>Track your performance</Text>
 
-              {/* Tabs */}
               <View style={s.tabsRow}>
                 {(["Strength", "Endurance", "Consistency"] as Tab[]).map(
                   (t) => (
@@ -250,7 +240,6 @@ export default function ProgressScreen() {
                 )}
               </View>
 
-              {/* Bars */}
               <View style={s.barsRow}>
                 {bars.map((h, i) => (
                   <View key={i} style={s.barCol}>
@@ -259,7 +248,8 @@ export default function ProgressScreen() {
                         s.bar,
                         {
                           height: Math.max((h / max) * 72, h > 0 ? 6 : 3),
-                          backgroundColor: h > 0 ? "#7ED957" : "#1E1E1E",
+                          backgroundColor:
+                            h > 0 ? colors.primary : colors.surfaceAlt,
                           opacity: h > 0 ? 1 : 0.35,
                         },
                       ]}
@@ -270,7 +260,6 @@ export default function ProgressScreen() {
               </View>
             </View>
 
-            {/* Stats */}
             <View style={s.statsWrap}>
               {[
                 { label: "Duration", val: `${stats.totalDuration} min` },
@@ -290,12 +279,10 @@ export default function ProgressScreen() {
               ))}
             </View>
 
-            {/* Empty state hint */}
             {stats.totalDuration === 0 && (
               <View style={s.emptyHint}>
-                <Text style={s.emptyIcon}>🏋️</Text>
                 <Text style={s.emptyText}>
-                  Complete your first workout to see progress here!
+                  Complete your first workout to see progress here.
                 </Text>
               </View>
             )}
@@ -307,7 +294,7 @@ export default function ProgressScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
+  safe: { flex: 1, backgroundColor: colors.background },
   topRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -316,8 +303,8 @@ const s = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 8,
   },
-  heading: { color: "#fff", fontSize: 20, fontWeight: "700" },
-  weekly: { color: "#7ED957", fontSize: 12, fontWeight: "600" },
+  heading: { color: colors.textPrimary, fontSize: 20, fontWeight: "700" },
+  weekly: { color: colors.primary, fontSize: 12, fontWeight: "600" },
   ringWrap: { alignItems: "center", marginTop: 16, position: "relative" },
   ringCenter: {
     position: "absolute",
@@ -328,42 +315,52 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  ringPct: { color: "#fff", fontSize: 34, fontWeight: "800", lineHeight: 38 },
-  ringWeek: { color: "#5A5A5A", fontSize: 11, marginTop: 4 },
+  ringPct: {
+    color: colors.textPrimary,
+    fontSize: 34,
+    fontWeight: "800",
+    lineHeight: 38,
+  },
+  ringWeek: { color: colors.textTertiary, fontSize: 11, marginTop: 4 },
   userName: {
-    color: "#fff",
+    color: colors.textPrimary,
     fontSize: 18,
     fontWeight: "700",
     textAlign: "center",
     marginTop: 12,
   },
   userHandle: {
-    color: "#5A5A5A",
+    color: colors.textTertiary,
     fontSize: 13,
     textAlign: "center",
     marginBottom: 20,
   },
   calWrap: { paddingHorizontal: 20, marginBottom: 20 },
-  calLabel: { color: "#9A9A9A", fontSize: 12, marginBottom: 10 },
+  calLabel: { color: colors.textSecondary, fontSize: 12, marginBottom: 10 },
   calRow: { flexDirection: "row", justifyContent: "space-between" },
   calDay: { alignItems: "center", gap: 6 },
-  calDayLabel: { color: "#5A5A5A", fontSize: 10 },
+  calDayLabel: { color: colors.textTertiary, fontSize: 10 },
   calDot: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  calDotDone: { backgroundColor: "#7ED957", borderColor: "#7ED957" },
-  calDotToday: { borderColor: "#7ED957", backgroundColor: "transparent" },
+  calDotDone: { backgroundColor: colors.primary, borderColor: colors.primary },
+  calDotToday: { borderColor: colors.primary, backgroundColor: "transparent" },
   perfWrap: { paddingHorizontal: 20 },
-  perfSub: { color: "#9A9A9A", fontSize: 13, lineHeight: 20, marginBottom: 12 },
+  perfSub: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
   perfTitle: {
-    color: "#fff",
+    color: colors.textPrimary,
     fontSize: 15,
     fontWeight: "700",
     marginBottom: 14,
@@ -371,7 +368,7 @@ const s = StyleSheet.create({
   tabsRow: {
     flexDirection: "row",
     borderBottomWidth: 0.5,
-    borderBottomColor: "rgba(255,255,255,0.1)",
+    borderBottomColor: colors.border,
     marginBottom: 16,
   },
   tabBtn: {
@@ -381,9 +378,9 @@ const s = StyleSheet.create({
     borderBottomColor: "transparent",
     marginBottom: -0.5,
   },
-  tabBtnActive: { borderBottomColor: "#7ED957" },
-  tabText: { color: "#5A5A5A", fontSize: 13, fontWeight: "600" },
-  tabTextActive: { color: "#7ED957" },
+  tabBtnActive: { borderBottomColor: colors.primary },
+  tabText: { color: colors.textTertiary, fontSize: 13, fontWeight: "600" },
+  tabTextActive: { color: colors.primary },
   barsRow: {
     flexDirection: "row",
     gap: 8,
@@ -393,7 +390,7 @@ const s = StyleSheet.create({
   },
   barCol: { flex: 1, alignItems: "center", gap: 4 },
   bar: { width: "100%", borderRadius: 4 },
-  barLabel: { color: "#5A5A5A", fontSize: 10 },
+  barLabel: { color: colors.textTertiary, fontSize: 10 },
   statsWrap: { paddingHorizontal: 20, paddingBottom: 16 },
   statRow: {
     flexDirection: "row",
@@ -401,16 +398,12 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 14,
   },
-  statBorder: {
-    borderBottomWidth: 0.5,
-    borderBottomColor: "rgba(255,255,255,0.1)",
-  },
-  statLabel: { color: "#9A9A9A", fontSize: 13 },
-  statVal: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  statBorder: { borderBottomWidth: 0.5, borderBottomColor: colors.border },
+  statLabel: { color: colors.textSecondary, fontSize: 13 },
+  statVal: { color: colors.textPrimary, fontSize: 15, fontWeight: "700" },
   emptyHint: { alignItems: "center", paddingHorizontal: 40, paddingBottom: 32 },
-  emptyIcon: { fontSize: 36, marginBottom: 10 },
   emptyText: {
-    color: "#5A5A5A",
+    color: colors.textTertiary,
     fontSize: 13,
     textAlign: "center",
     lineHeight: 20,

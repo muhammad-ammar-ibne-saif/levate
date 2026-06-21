@@ -3,10 +3,18 @@ import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
+import { Ionicons } from "@expo/vector-icons";
 import { useWorkoutStore } from "@/store/workout";
 import { useWorkoutTimer, formatTime } from "@/hooks/useWorkoutTimer";
+import { colors, radius } from "@/lib/theme";
 
 type WorkoutPhase = "ready" | "active" | "paused";
+type IconName = React.ComponentProps<typeof Ionicons>["name"];
+const TYPE_ICON: Record<string, IconName> = {
+  lift: "barbell-outline",
+  run: "footsteps-outline",
+  race: "flag-outline",
+};
 
 export default function ActiveWorkoutScreen() {
   const { name, type } = useLocalSearchParams<{
@@ -14,11 +22,9 @@ export default function ActiveWorkoutScreen() {
     type: "lift" | "run" | "race";
   }>();
   const {
-    isActive,
-    isPaused,
-    elapsedSeconds,
     setsCompleted,
     calories,
+    elapsedSeconds,
     startWorkout,
     pauseWorkout,
     resumeWorkout,
@@ -29,15 +35,10 @@ export default function ActiveWorkoutScreen() {
 
   useWorkoutTimer();
 
-  // Reset on mount so timer is always 0 when arriving at this screen
   useEffect(() => {
     resetWorkout();
-    return () => {};
   }, []);
 
-  const accentColor = { lift: "#7ED957", run: "#5B9CF6", race: "#F97316" }[
-    type || "lift"
-  ];
   const size = 220,
     sw = 10,
     r = (size - sw) / 2,
@@ -49,12 +50,10 @@ export default function ActiveWorkoutScreen() {
     setPhase("active");
     startWorkout(name || "Workout", type || "lift");
   };
-
   const handlePause = () => {
     setPhase("paused");
     pauseWorkout();
   };
-
   const handleResume = () => {
     setPhase("active");
     resumeWorkout();
@@ -94,10 +93,9 @@ export default function ActiveWorkoutScreen() {
 
   return (
     <SafeAreaView style={s.safe}>
-      {/* Top bar */}
       <View style={s.topBar}>
         <TouchableOpacity style={s.backBtn} onPress={handleBack}>
-          <Text style={s.backIcon}>‹</Text>
+          <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={s.wkName} numberOfLines={1}>
@@ -113,13 +111,12 @@ export default function ActiveWorkoutScreen() {
           </Text>
         </View>
         <View style={s.setBadge}>
-          <Text style={[s.setNum, { color: accentColor }]}>5</Text>
+          <Text style={[s.setNum, { color: colors.primary }]}>5</Text>
           <Text style={s.setPlus}>+</Text>
-          <Text style={[s.setNum, { color: "#5A5A5A" }]}>1</Text>
+          <Text style={[s.setNum, { color: colors.textTertiary }]}>1</Text>
         </View>
       </View>
 
-      {/* Timer ring */}
       <View style={s.ringWrap}>
         <Svg
           width={size}
@@ -130,7 +127,7 @@ export default function ActiveWorkoutScreen() {
             cx={size / 2}
             cy={size / 2}
             r={r}
-            stroke="#1E1E1E"
+            stroke={colors.surfaceAlt}
             strokeWidth={sw}
             fill="none"
           />
@@ -138,7 +135,7 @@ export default function ActiveWorkoutScreen() {
             cx={size / 2}
             cy={size / 2}
             r={r}
-            stroke={accentColor}
+            stroke={colors.primary}
             strokeWidth={sw}
             fill="none"
             strokeLinecap="round"
@@ -150,9 +147,11 @@ export default function ActiveWorkoutScreen() {
         <View style={s.ringCenter}>
           {phase === "ready" ? (
             <View style={s.readyCenter}>
-              <Text style={s.readyEmoji}>
-                {type === "lift" ? "🏋️" : type === "run" ? "🏃" : "🏁"}
-              </Text>
+              <Ionicons
+                name={TYPE_ICON[type || "lift"]}
+                size={36}
+                color={colors.primary}
+              />
               <Text style={s.readyText}>Ready</Text>
               <Text style={s.readySub}>Tap Start to begin</Text>
             </View>
@@ -160,14 +159,13 @@ export default function ActiveWorkoutScreen() {
             <>
               <Text style={s.timeText}>{formatTime(elapsedSeconds)}</Text>
               <Text style={s.timeLabel}>
-                {phase === "paused" ? "⏸ Paused" : "Workout duration"}
+                {phase === "paused" ? "Paused" : "Workout duration"}
               </Text>
             </>
           )}
         </View>
       </View>
 
-      {/* Stats */}
       <View style={s.statsRow}>
         <View style={s.statItem}>
           <Text style={s.statVal}>{setsCompleted}</Text>
@@ -180,14 +178,13 @@ export default function ActiveWorkoutScreen() {
         </View>
       </View>
 
-      {/* Info tiles */}
       <View style={s.tileRow}>
         <View style={s.tile}>
           <Text style={s.tileVal}>5+1</Text>
           <Text style={s.tileLabel}>Hybrid build</Text>
         </View>
         <View style={s.tile}>
-          <Text style={[s.tileVal, { color: accentColor }]}>
+          <Text style={[s.tileVal, { color: colors.primary }]}>
             {phase === "ready"
               ? "—"
               : String(
@@ -198,39 +195,43 @@ export default function ActiveWorkoutScreen() {
         </View>
       </View>
 
-      {/* Controls */}
       <View style={s.controls}>
         {phase === "ready" && (
           <TouchableOpacity
-            style={[s.ctrlBtn, { backgroundColor: accentColor }]}
+            style={[s.ctrlBtn, { backgroundColor: colors.primary }]}
             onPress={handleStart}
           >
-            <Text style={s.ctrlTextDark}>▶ Start Workout</Text>
+            <Ionicons name="play" size={16} color={colors.textOnPrimary} />
+            <Text style={s.ctrlTextDark}>Start Workout</Text>
           </TouchableOpacity>
         )}
         {phase === "active" && (
           <>
             <TouchableOpacity
-              style={[s.ctrlBtn, { backgroundColor: accentColor }]}
+              style={[s.ctrlBtn, { backgroundColor: colors.primary }]}
               onPress={handlePause}
             >
-              <Text style={s.ctrlTextDark}>⏸ Pause</Text>
+              <Ionicons name="pause" size={16} color={colors.textOnPrimary} />
+              <Text style={s.ctrlTextDark}>Pause</Text>
             </TouchableOpacity>
             <TouchableOpacity style={s.ctrlBtnGhost} onPress={handleEnd}>
-              <Text style={s.ctrlTextLight}>⏹ End workout</Text>
+              <Ionicons name="stop" size={16} color={colors.textPrimary} />
+              <Text style={s.ctrlTextLight}>End workout</Text>
             </TouchableOpacity>
           </>
         )}
         {phase === "paused" && (
           <>
             <TouchableOpacity
-              style={[s.ctrlBtn, { backgroundColor: accentColor }]}
+              style={[s.ctrlBtn, { backgroundColor: colors.primary }]}
               onPress={handleResume}
             >
-              <Text style={s.ctrlTextDark}>▶ Resume</Text>
+              <Ionicons name="play" size={16} color={colors.textOnPrimary} />
+              <Text style={s.ctrlTextDark}>Resume</Text>
             </TouchableOpacity>
             <TouchableOpacity style={s.ctrlBtnGhost} onPress={handleEnd}>
-              <Text style={s.ctrlTextLight}>⏹ End workout</Text>
+              <Ionicons name="stop" size={16} color={colors.textPrimary} />
+              <Text style={s.ctrlTextLight}>End workout</Text>
             </TouchableOpacity>
           </>
         )}
@@ -240,7 +241,7 @@ export default function ActiveWorkoutScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
+  safe: { flex: 1, backgroundColor: colors.background },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -253,17 +254,16 @@ const s = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  backIcon: { color: "#fff", fontSize: 26, lineHeight: 30 },
-  wkName: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  wkSub: { color: "#9A9A9A", fontSize: 12, marginTop: 1 },
+  wkName: { color: colors.textPrimary, fontSize: 16, fontWeight: "700" },
+  wkSub: { color: colors.textSecondary, fontSize: 12, marginTop: 1 },
   setBadge: {
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     borderRadius: 50,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -271,10 +271,10 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
   },
   setNum: { fontSize: 16, fontWeight: "800" },
-  setPlus: { color: "#5A5A5A", fontSize: 14 },
+  setPlus: { color: colors.textTertiary, fontSize: 14 },
   ringWrap: {
     alignItems: "center",
     justifyContent: "center",
@@ -287,12 +287,16 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   readyCenter: { alignItems: "center", gap: 4 },
-  readyEmoji: { fontSize: 40, marginBottom: 4 },
-  readyText: { color: "#fff", fontSize: 22, fontWeight: "800" },
-  readySub: { color: "#5A5A5A", fontSize: 13 },
-  timeText: { color: "#fff", fontSize: 42, fontWeight: "800" },
+  readyText: {
+    color: colors.textPrimary,
+    fontSize: 22,
+    fontWeight: "800",
+    marginTop: 6,
+  },
+  readySub: { color: colors.textTertiary, fontSize: 13 },
+  timeText: { color: colors.textPrimary, fontSize: 42, fontWeight: "800" },
   timeLabel: {
-    color: "#5A5A5A",
+    color: colors.textTertiary,
     fontSize: 11,
     textTransform: "uppercase",
     letterSpacing: 0.8,
@@ -306,15 +310,15 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   statItem: { alignItems: "center" },
-  statVal: { color: "#fff", fontSize: 22, fontWeight: "700" },
+  statVal: { color: colors.textPrimary, fontSize: 22, fontWeight: "700" },
   statLabel: {
-    color: "#5A5A5A",
+    color: colors.textTertiary,
     fontSize: 10,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginTop: 2,
   },
-  statDiv: { width: 1, height: 32, backgroundColor: "rgba(255,255,255,0.1)" },
+  statDiv: { width: 1, height: 32, backgroundColor: colors.border },
   tileRow: {
     flexDirection: "row",
     gap: 10,
@@ -323,15 +327,15 @@ const s = StyleSheet.create({
   },
   tile: {
     flex: 1,
-    backgroundColor: "#1E1E1E",
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.sm,
     padding: 14,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
   },
-  tileVal: { color: "#fff", fontSize: 20, fontWeight: "700" },
+  tileVal: { color: colors.textPrimary, fontSize: 20, fontWeight: "700" },
   tileLabel: {
-    color: "#5A5A5A",
+    color: colors.textTertiary,
     fontSize: 10,
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -345,6 +349,8 @@ const s = StyleSheet.create({
   },
   ctrlBtn: {
     flex: 1,
+    flexDirection: "row",
+    gap: 8,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: "center",
@@ -352,14 +358,19 @@ const s = StyleSheet.create({
   },
   ctrlBtnGhost: {
     flex: 1,
+    flexDirection: "row",
+    gap: 8,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 0.5,
     borderColor: "rgba(255,255,255,0.2)",
-    backgroundColor: "transparent",
   },
-  ctrlTextDark: { color: "#0D0D0D", fontWeight: "700", fontSize: 14 },
-  ctrlTextLight: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  ctrlTextDark: {
+    color: colors.textOnPrimary,
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  ctrlTextLight: { color: colors.textPrimary, fontWeight: "700", fontSize: 14 },
 });

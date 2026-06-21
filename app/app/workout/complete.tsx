@@ -2,8 +2,10 @@ import React from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useWorkoutStore } from "@/store/workout";
 import { Button } from "@/components/ui/Button";
+import { colors, radius } from "@/lib/theme";
 
 export default function WorkoutCompleteScreen() {
   const { sessions } = useWorkoutStore();
@@ -21,16 +23,14 @@ export default function WorkoutCompleteScreen() {
   return (
     <SafeAreaView style={s.safe}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Hero */}
         <View style={s.hero}>
           <View style={s.checkCircle}>
-            <Text style={s.checkMark}>✓</Text>
+            <Ionicons name="checkmark" size={36} color={colors.primary} />
           </View>
           <Text style={s.title}>Workout Completed!</Text>
           <Text style={s.sub}>Nice work. Here's your session summary.</Text>
         </View>
 
-        {/* Summary card */}
         <View style={s.card}>
           <View style={s.cardHeader}>
             <Text style={s.cardHeaderText}>Session Summary</Text>
@@ -51,7 +51,6 @@ export default function WorkoutCompleteScreen() {
           </View>
         </View>
 
-        {/* Actions */}
         <View style={s.actions}>
           <Button
             label="Back to Home"
@@ -70,7 +69,7 @@ export default function WorkoutCompleteScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
+  safe: { flex: 1, backgroundColor: colors.background },
   hero: {
     alignItems: "center",
     paddingTop: 48,
@@ -81,33 +80,42 @@ const s = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "rgba(126,217,87,0.1)",
+    backgroundColor: colors.primaryDim,
     borderWidth: 2,
-    borderColor: "rgba(126,217,87,0.3)",
+    borderColor: colors.borderStrong,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
   },
-  checkMark: { color: "#7ED957", fontSize: 36, fontWeight: "800" },
-  title: { color: "#fff", fontSize: 24, fontWeight: "800", marginBottom: 6 },
-  sub: { color: "#9A9A9A", fontSize: 14, textAlign: "center", lineHeight: 22 },
+  title: {
+    color: colors.textPrimary,
+    fontSize: 24,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  sub: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 22,
+  },
   card: {
     marginHorizontal: 20,
     marginBottom: 24,
-    backgroundColor: "#1E1E1E",
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     overflow: "hidden",
   },
   cardHeader: {
     paddingHorizontal: 18,
     paddingVertical: 13,
     borderBottomWidth: 0.5,
-    borderBottomColor: "rgba(255,255,255,0.1)",
+    borderBottomColor: colors.border,
   },
   cardHeaderText: {
-    color: "#5A5A5A",
+    color: colors.textTertiary,
     fontSize: 11,
     fontWeight: "700",
     textTransform: "uppercase",
@@ -115,19 +123,16 @@ const s = StyleSheet.create({
   },
   statsRow: { flexDirection: "row" },
   statCell: { flex: 1, alignItems: "center", paddingVertical: 20 },
-  statBorder: {
-    borderRightWidth: 0.5,
-    borderRightColor: "rgba(255,255,255,0.1)",
-  },
+  statBorder: { borderRightWidth: 0.5, borderRightColor: colors.border },
   statValue: {
-    color: "#fff",
+    color: colors.textPrimary,
     fontSize: 24,
     fontWeight: "800",
     marginBottom: 4,
   },
-  statUnit: { fontSize: 13, fontWeight: "500", color: "#5A5A5A" },
+  statUnit: { fontSize: 13, fontWeight: "500", color: colors.textTertiary },
   statLabel: {
-    color: "#5A5A5A",
+    color: colors.textTertiary,
     fontSize: 10,
     textTransform: "uppercase",
     letterSpacing: 0.5,
