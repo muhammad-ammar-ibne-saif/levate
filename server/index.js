@@ -25,6 +25,7 @@ const User    = require("./models/User");
 const Message = require("./models/Message");
 
 const app    = express();
+app.set("trust proxy", 1);
 const server = http.createServer(app);   // ← wrap express in http server for socket.io
 const PORT   = process.env.PORT || 4000;
 
