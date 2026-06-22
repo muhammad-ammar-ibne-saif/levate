@@ -22,32 +22,32 @@ const slides: {
   id: string;
   icon: IconName;
   tag: string;
-  title: string;
-  highlight: string;
+  // title: string;
+  // highlight: string;
   desc: string;
 }[] = [
   {
     id: "1",
     icon: "trending-up-outline",
     tag: "Your Next Level Of Fitness",
-    title: "The door is open —",
-    highlight: "the people inside are the reason you stay",
+    // title: "The door is open —",
+    // highlight: "the people inside are the reason you stay",
     desc: "This app is the door. The people within are the reason you stay, and why you become fitter than you thought possible.",
   },
   {
     id: "2",
     icon: "compass-outline",
     tag: "A Plan That Knows Your Life",
-    title: "No guesswork.",
-    highlight: "Just clarity",
+    // title: "No guesswork.",
+    // highlight: "Just clarity",
     desc: "We find out your goal, your availability and your fitness level — so you're always clear on how to get fitter.",
   },
   {
     id: "3",
     icon: "people-outline",
     tag: "Join the Community",
-    title: "Ambitious athletes,",
-    highlight: "all levelling up together",
+    // title: "Ambitious athletes,",
+    // highlight: "all levelling up together",
     desc: "The people within this ecosystem want to level up — and help others do the same. Complete synergy.",
   },
 ];
@@ -75,8 +75,8 @@ export default function OnboardScreen() {
       <View style={s.tagRow}>
         <Text style={s.tagText}>{item.tag}</Text>
       </View>
-      <Text style={s.title}>{item.title}</Text>
-      <Text style={s.titleHighlight}>{item.highlight}</Text>
+      {/* <Text style={s.title}>{item.title}</Text>
+      <Text style={s.titleHighlight}>{item.highlight}</Text> */}
       <Text style={s.desc}>{item.desc}</Text>
     </View>
   );
