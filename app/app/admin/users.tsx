@@ -1,90 +1,75 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, TextInput, RefreshControl, Alert,
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { colors, radius, spacing } from "@/lib/theme";
 import api from "@/lib/api";
 
-interface User {
+interface AdminUser {
   _id: string;
   firstName: string;
   lastName: string;
   email: string;
-  mobile: string;
   isAdmin: boolean;
   createdAt: string;
-  currentWeek: number;
-  workoutCount: number;
-  totalMinutes: number;
-}
-
-function timeAgo(d: string) {
-  const diff = Date.now() - new Date(d).getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days < 1) return "Today";
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days}d ago`;
-  return new Date(d).toLocaleDateString();
 }
 
 export default function AdminUsersScreen() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchUsers = async (p = 1, q = search, append = false) => {
-    try {
-      const { data } = await api.get("/api/admin/users", {
-        params: { page: p, limit: 20, search: q },
-      });
-      setUsers(prev => append ? [...prev, ...data.users] : data.users);
-      setTotal(data.total);
-      setTotalPages(data.pages);
-      setPage(p);
-    } catch (err: any) {
-      if (err.response?.status === 403) {
-        Alert.alert("Access Denied", "Admin only.");
-        router.back();
+  const fetchUsers = useCallback(
+    async (pageNum: number, query: string, append: boolean) => {
+      try {
+        const { data } = await api.get("/api/admin/users", {
+          params: { page: pageNum, search: query, limit: 20 },
+        });
+        setUsers((prev) => (append ? [...prev, ...data.users] : data.users));
+        setHasMore(data.users.length === 20);
+      } catch {
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
       }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-      setLoadingMore(false);
-    }
-  };
+    },
+    []
+  );
 
-  useEffect(() => { fetchUsers(1, "", false); }, []);
-
-  const onSearch = (text: string) => {
-    setSearch(text);
-    if (text.length === 0 || text.length >= 2) {
-      setLoading(true);
-      fetchUsers(1, text, false);
-    }
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchUsers(1, search, false);
-  };
+  useEffect(() => {
+    setLoading(true);
+    const t = setTimeout(() => {
+      setPage(1);
+      fetchUsers(1, search, false);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const loadMore = () => {
-    if (loadingMore || page >= totalPages) return;
+    if (loadingMore || !hasMore) return;
     setLoadingMore(true);
-    fetchUsers(page + 1, search, true);
+    const next = page + 1;
+    setPage(next);
+    fetchUsers(next, search, true);
   };
 
-  const deleteUser = (userId: string, name: string) => {
+  const confirmDelete = (user: AdminUser) => {
     Alert.alert(
       "Delete User",
-      `Delete ${name} and all their data? This cannot be undone.`,
+      `Delete ${user.firstName} ${user.lastName}'s account? This cannot be undone.`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -92,9 +77,8 @@ export default function AdminUsersScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await api.delete(`/api/admin/users/${userId}`);
-              setUsers(prev => prev.filter(u => u._id !== userId));
-              setTotal(prev => prev - 1);
+              await api.delete(`/api/admin/users/${user._id}`);
+              setUsers((prev) => prev.filter((u) => u._id !== user._id));
             } catch {
               Alert.alert("Error", "Failed to delete user.");
             }
@@ -104,104 +88,101 @@ export default function AdminUsersScreen() {
     );
   };
 
-  const renderUser = ({ item }: { item: User }) => (
-    <TouchableOpacity
-      style={s.userCard}
-      activeOpacity={0.75}
-      onPress={() => router.push({ pathname: "/app/admin/user-detail", params: { id: item._id } })}
-    >
-      <View style={s.avatarWrap}>
-        <Text style={s.avatarText}>
-          {(item.firstName[0] || "") + (item.lastName[0] || "")}
-        </Text>
-        {item.isAdmin && (
-          <View style={s.adminBadge}><Text style={s.adminBadgeText}>A</Text></View>
-        )}
-      </View>
-      <View style={{ flex: 1 }}>
-        <View style={s.nameRow}>
-          <Text style={s.name}>{item.firstName} {item.lastName}</Text>
-          {item.isAdmin && <Text style={s.adminTag}>Admin</Text>}
-        </View>
-        <Text style={s.email}>{item.email}</Text>
-        <View style={s.metaRow}>
-          <Text style={s.meta}>Week {item.currentWeek}</Text>
-          <Text style={s.metaDot}>·</Text>
-          <Text style={s.meta}>{item.workoutCount} workouts</Text>
-          <Text style={s.metaDot}>·</Text>
-          <Text style={s.meta}>{item.totalMinutes} min</Text>
-        </View>
-      </View>
-      <View style={s.rightCol}>
-        <Text style={s.joinDate}>{timeAgo(item.createdAt)}</Text>
-        {!item.isAdmin && (
-          <TouchableOpacity
-            style={s.deleteBtn}
-            onPress={() => deleteUser(item._id, `${item.firstName} ${item.lastName}`)}
-          >
-            <Text style={s.deleteText}>🗑</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-
   return (
     <SafeAreaView style={s.safe}>
-      {/* Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-          <Text style={s.backIcon}>‹</Text>
+          <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={s.title}>All Users</Text>
-          <Text style={s.subtitle}>{total} total</Text>
-        </View>
+        <Text style={s.headerTitle}>Manage Users</Text>
       </View>
 
-      {/* Search */}
       <View style={s.searchWrap}>
-        <Text style={s.searchIcon}>🔍</Text>
+        <Ionicons name="search-outline" size={17} color={colors.textTertiary} />
         <TextInput
           style={s.searchInput}
-          placeholder="Search by name or email..."
-          placeholderTextColor="#3A3A3A"
+          placeholder="Search by name or email…"
+          placeholderTextColor={colors.textTertiary}
           value={search}
-          onChangeText={onSearch}
-          autoCapitalize="none"
+          onChangeText={setSearch}
         />
         {search.length > 0 && (
-          <TouchableOpacity onPress={() => onSearch("")}>
-            <Text style={{ color: "#5A5A5A", fontSize: 16 }}>✕</Text>
+          <TouchableOpacity onPress={() => setSearch("")}>
+            <Ionicons
+              name="close-circle"
+              size={17}
+              color={colors.textTertiary}
+            />
           </TouchableOpacity>
         )}
       </View>
 
       {loading ? (
-        <ActivityIndicator color="#7ED957" style={{ marginTop: 60 }} />
+        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={users}
-          keyExtractor={item => item._id}
-          renderItem={renderUser}
+          keyExtractor={(u) => u._id}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7ED957" />
-          }
           onEndReached={loadMore}
-          onEndReachedThreshold={0.3}
-          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+          onEndReachedThreshold={0.4}
           ListFooterComponent={
-            loadingMore ? <ActivityIndicator color="#7ED957" style={{ marginTop: 16 }} /> : null
+            loadingMore ? (
+              <ActivityIndicator
+                color={colors.primary}
+                style={{ marginVertical: 16 }}
+              />
+            ) : null
           }
-          ListEmptyComponent={
-            <View style={s.empty}>
-              <Text style={s.emptyIcon}>👥</Text>
-              <Text style={s.emptyText}>
-                {search ? "No users match your search." : "No users yet."}
-              </Text>
+          ListEmptyComponent={<Text style={s.emptyText}>No users found.</Text>}
+          renderItem={({ item }) => (
+            <View style={s.userRow}>
+              <TouchableOpacity
+                style={s.userInfo}
+                onPress={() =>
+                  router.push({
+                    pathname: "/app/admin/user-detail",
+                    params: { userId: item._id },
+                  })
+                }
+              >
+                <View style={s.avatar}>
+                  <Text style={s.avatarText}>
+                    {(item.firstName[0] || "") + (item.lastName[0] || "")}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={s.nameRow}>
+                    <Text style={s.userName}>
+                      {item.firstName} {item.lastName}
+                    </Text>
+                    {item.isAdmin && (
+                      <View style={s.adminTag}>
+                        <Ionicons
+                          name="shield-checkmark"
+                          size={10}
+                          color={colors.primary}
+                        />
+                        <Text style={s.adminTagText}>Admin</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={s.userEmail}>{item.email}</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={s.deleteBtn}
+                onPress={() => confirmDelete(item)}
+              >
+                <Ionicons
+                  name="trash-outline"
+                  size={17}
+                  color={colors.danger}
+                />
+              </TouchableOpacity>
             </View>
-          }
+          )}
+          ItemSeparatorComponent={() => <View style={s.sep} />}
         />
       )}
     </SafeAreaView>
@@ -209,32 +190,82 @@ export default function AdminUsersScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
-  header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: "rgba(255,255,255,0.1)" },
-  backBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: "#1E1E1E", borderWidth: 0.5, borderColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" },
-  backIcon: { color: "#fff", fontSize: 26, lineHeight: 30 },
-  title: { color: "#fff", fontSize: 18, fontWeight: "800" },
-  subtitle: { color: "#5A5A5A", fontSize: 12, marginTop: 1 },
-  searchWrap: { flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 20, marginVertical: 12, backgroundColor: "#1E1E1E", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 0.5, borderColor: "rgba(255,255,255,0.1)" },
-  searchIcon: { fontSize: 16 },
-  searchInput: { flex: 1, color: "#fff", fontSize: 14 },
-  userCard: { backgroundColor: "#1E1E1E", borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 0.5, borderColor: "rgba(255,255,255,0.1)" },
-  avatarWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(126,217,87,0.12)", borderWidth: 1, borderColor: "rgba(126,217,87,0.3)", alignItems: "center", justifyContent: "center", position: "relative" },
-  avatarText: { color: "#7ED957", fontWeight: "800", fontSize: 15 },
-  adminBadge: { position: "absolute", top: -2, right: -2, width: 16, height: 16, borderRadius: 8, backgroundColor: "#F97316", alignItems: "center", justifyContent: "center" },
-  adminBadgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
+  safe: { flex: 1, backgroundColor: colors.background },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.surface,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: "700" },
+  searchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+  },
+  searchInput: { flex: 1, color: colors.textPrimary, fontSize: 14 },
+  userRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 12,
+  },
+  userInfo: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primaryDim,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: { color: colors.primary, fontSize: 13, fontWeight: "800" },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  name: { color: "#fff", fontSize: 14, fontWeight: "600" },
-  adminTag: { backgroundColor: "rgba(249,115,22,0.1)", color: "#F97316", fontSize: 10, fontWeight: "700", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  email: { color: "#5A5A5A", fontSize: 12, marginTop: 2 },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
-  meta: { color: "#9A9A9A", fontSize: 11 },
-  metaDot: { color: "#3A3A3A", fontSize: 11 },
-  rightCol: { alignItems: "flex-end", gap: 8 },
-  joinDate: { color: "#5A5A5A", fontSize: 11 },
-  deleteBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: "rgba(239,68,68,0.1)", alignItems: "center", justifyContent: "center" },
-  deleteText: { fontSize: 14 },
-  empty: { alignItems: "center", marginTop: 60, gap: 10 },
-  emptyIcon: { fontSize: 40 },
-  emptyText: { color: "#5A5A5A", fontSize: 14 },
+  userName: { color: colors.textPrimary, fontSize: 14, fontWeight: "600" },
+  adminTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: colors.primaryDim,
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  adminTagText: { color: colors.primary, fontSize: 9, fontWeight: "700" },
+  userEmail: { color: colors.textTertiary, fontSize: 12, marginTop: 1 },
+  deleteBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(239,68,68,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sep: { height: 0.5, backgroundColor: colors.border },
+  emptyText: {
+    color: colors.textTertiary,
+    fontSize: 13,
+    textAlign: "center",
+    padding: 40,
+  },
 });

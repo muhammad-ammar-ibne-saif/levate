@@ -12,17 +12,10 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/auth";
 import { useChatStore, ChatMessage } from "@/store/chat";
-
-const DEMOS = [
-  "Based on your Week 5 training, you're making great progress! Your threshold runs are building real aerobic capacity.",
-  "For Lower Power + Carries, focus on hip hinge patterns — Romanian deadlifts and trap bar carries are your best friends.",
-  "Recovery between sets should be 2–3 minutes for power work. Quality beats speed every time.",
-  "For race day nutrition, aim for 40–60g of carbs per hour. Stay ahead of thirst.",
-  "Hybrid training balances stimulus without too much fatigue. Your current 4-day split is well-designed.",
-  "Soreness is normal after high-intensity sessions. If it's muscular, easy movement actually helps recovery.",
-];
+import { colors, radius } from "@/lib/theme";
 
 function Typing() {
   const [dot, setDot] = useState(0);
@@ -33,7 +26,7 @@ function Typing() {
   return (
     <View style={c.botRow}>
       <View style={c.botAvatar}>
-        <Text style={{ fontSize: 12 }}>🤖</Text>
+        <Ionicons name="sparkles-outline" size={14} color={colors.primary} />
       </View>
       <View style={c.typingBubble}>
         {[0, 1, 2].map((i) => (
@@ -78,14 +71,14 @@ export default function ChatScreen() {
     <SafeAreaView style={c.safe}>
       <View style={c.header}>
         <TouchableOpacity style={c.back} onPress={() => router.back()}>
-          <Text style={{ color: "#fff", fontSize: 20 }}>‹</Text>
+          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={c.headerTitle}>Ask me</Text>
           <Text style={c.headerSub}>AI Training Assistant</Text>
         </View>
         <View style={c.botIcon}>
-          <Text style={{ fontSize: 18 }}>🤖</Text>
+          <Ionicons name="sparkles-outline" size={18} color={colors.primary} />
         </View>
       </View>
 
@@ -102,13 +95,17 @@ export default function ChatScreen() {
           ListHeaderComponent={
             <View style={c.botRow}>
               <View style={c.botAvatar}>
-                <Text style={{ fontSize: 12 }}>🤖</Text>
+                <Ionicons
+                  name="sparkles-outline"
+                  size={14}
+                  color={colors.primary}
+                />
               </View>
               <View style={c.botBubble}>
                 <Text style={c.botText}>
                   Hey {firstName}! I'm your AI training assistant. Ask me
                   anything about your workouts, nutrition, recovery, or race
-                  prep. 💪
+                  prep.
                 </Text>
               </View>
             </View>
@@ -123,7 +120,11 @@ export default function ChatScreen() {
             ) : (
               <View style={c.botRow}>
                 <View style={c.botAvatar}>
-                  <Text style={{ fontSize: 12 }}>🤖</Text>
+                  <Ionicons
+                    name="sparkles-outline"
+                    size={14}
+                    color={colors.primary}
+                  />
                 </View>
                 <View style={c.botBubble}>
                   <Text style={c.botText}>{item.content}</Text>
@@ -139,7 +140,7 @@ export default function ChatScreen() {
             <TextInput
               style={c.textInput}
               placeholder="Ask anything..."
-              placeholderTextColor="#3A3A3A"
+              placeholderTextColor={colors.textTertiary}
               value={input}
               onChangeText={setInput}
               multiline
@@ -157,9 +158,9 @@ export default function ChatScreen() {
             disabled={!input.trim() || isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="#0D0D0D" />
+              <ActivityIndicator size="small" color={colors.textOnPrimary} />
             ) : (
-              <Text style={{ color: "#0D0D0D", fontSize: 16 }}>➤</Text>
+              <Ionicons name="send" size={16} color={colors.textOnPrimary} />
             )}
           </TouchableOpacity>
         </View>
@@ -169,7 +170,7 @@ export default function ChatScreen() {
 }
 
 const c = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
+  safe: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -177,27 +178,27 @@ const c = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: "rgba(255,255,255,0.1)",
+    borderBottomColor: colors.border,
   },
   back: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  headerSub: { color: "#7ED957", fontSize: 11, marginTop: 1 },
+  headerTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: "700" },
+  headerSub: { color: colors.primary, fontSize: 11, marginTop: 1 },
   botIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(126,217,87,0.1)",
+    backgroundColor: colors.primaryDim,
     borderWidth: 0.5,
-    borderColor: "rgba(126,217,87,0.3)",
+    borderColor: colors.borderStrong,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -211,43 +212,43 @@ const c = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "rgba(126,217,87,0.1)",
+    backgroundColor: colors.primaryDim,
     borderWidth: 0.5,
-    borderColor: "rgba(126,217,87,0.3)",
+    borderColor: colors.borderStrong,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
   botBubble: {
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     borderRadius: 18,
     borderBottomLeftRadius: 4,
     padding: 12,
     maxWidth: "78%",
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
   },
-  botText: { color: "#fff", fontSize: 13, lineHeight: 20 },
+  botText: { color: colors.textPrimary, fontSize: 13, lineHeight: 20 },
   userRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
     marginBottom: 12,
   },
   userBubble: {
-    backgroundColor: "#7ED957",
+    backgroundColor: colors.primary,
     borderRadius: 18,
     borderBottomRightRadius: 4,
     padding: 12,
     maxWidth: "78%",
   },
   userText: {
-    color: "#0D0D0D",
+    color: colors.textOnPrimary,
     fontSize: 13,
     fontWeight: "500",
     lineHeight: 20,
   },
   typingBubble: {
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     borderRadius: 18,
     borderBottomLeftRadius: 4,
     padding: 14,
@@ -255,13 +256,13 @@ const c = StyleSheet.create({
     gap: 5,
     alignItems: "center",
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
   },
   typingDot: {
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: "#5A5A5A",
+    backgroundColor: colors.textTertiary,
   },
   inputBar: {
     flexDirection: "row",
@@ -270,24 +271,24 @@ const c = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 0.5,
-    borderTopColor: "rgba(255,255,255,0.1)",
-    backgroundColor: "#161616",
+    borderTopColor: colors.border,
+    backgroundColor: colors.surface,
   },
   inputWrap: {
     flex: 1,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
   },
-  textInput: { color: "#fff", fontSize: 14, maxHeight: 80 },
+  textInput: { color: colors.textPrimary, fontSize: 14, maxHeight: 80 },
   sendBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#7ED957",
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },

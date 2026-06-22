@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { colors, radius } from "@/lib/theme";
 
 interface InputProps extends TextInputProps {
   label: string;
@@ -26,7 +28,7 @@ export function Input({ label, error, secureTextEntry, ...props }: InputProps) {
       >
         <TextInput
           style={s.input}
-          placeholderTextColor="#3A3A3A"
+          placeholderTextColor={colors.textTertiary}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           secureTextEntry={isPassword && !showPassword}
@@ -38,7 +40,11 @@ export function Input({ label, error, secureTextEntry, ...props }: InputProps) {
             onPress={() => setShowPassword(!showPassword)}
             style={s.eyeBtn}
           >
-            <Text style={s.eyeText}>{showPassword ? "🙈" : "👁"}</Text>
+            <Ionicons
+              name={showPassword ? "eye-off-outline" : "eye-outline"}
+              size={18}
+              color={colors.textTertiary}
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -50,7 +56,7 @@ export function Input({ label, error, secureTextEntry, ...props }: InputProps) {
 const s = StyleSheet.create({
   wrap: { marginBottom: 14 },
   label: {
-    color: "#9A9A9A",
+    color: colors.textSecondary,
     fontSize: 12,
     fontWeight: "500",
     marginBottom: 7,
@@ -59,16 +65,20 @@ const s = StyleSheet.create({
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1E1E1E",
-    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderRadius: radius.sm,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     paddingHorizontal: 16,
   },
-  inputFocused: { borderColor: "#7ED957" },
-  inputError: { borderColor: "#EF4444" },
-  input: { flex: 1, paddingVertical: 14, color: "#fff", fontSize: 14 },
+  inputFocused: { borderColor: colors.primary },
+  inputError: { borderColor: colors.danger },
+  input: {
+    flex: 1,
+    paddingVertical: 14,
+    color: colors.textPrimary,
+    fontSize: 14,
+  },
   eyeBtn: { paddingLeft: 8 },
-  eyeText: { fontSize: 16 },
-  errorText: { color: "#EF4444", fontSize: 12, marginTop: 4 },
+  errorText: { color: colors.danger, fontSize: 12, marginTop: 4 },
 });

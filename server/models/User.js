@@ -18,6 +18,9 @@ const userSchema = new mongoose.Schema(
     isAdmin:    { type: Boolean, default: false },   // ← admin flag
     resetCode:        { type: String },
     resetCodeExpires: { type: Number }, 
+    fitnessLevel:       { type: String, default: "beginner" },
+onboardingComplete: { type: Boolean, default: false },
+onboardingData:     { type: String, default: "" },
   },
   { timestamps: true }
 );

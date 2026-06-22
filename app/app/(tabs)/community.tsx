@@ -10,19 +10,17 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
-  Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { io, Socket } from "socket.io-client";
 import * as SecureStore from "expo-secure-store";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
+import { colors, radius } from "@/lib/theme";
 
-// ── IMPORTANT: set this to your server URL ──────────────────────────────────
-// Same as API_BASE_URL in lib/api.ts
 const SOCKET_URL = "https://levate-production.up.railway.app";
-// ────────────────────────────────────────────────────────────────────────────
 
 interface Message {
   _id: string;
@@ -36,8 +34,7 @@ interface Message {
 
 function timeLabel(dateStr: string): string {
   const d = new Date(dateStr);
-  const now = new Date();
-  const diff = now.getTime() - d.getTime();
+  const diff = Date.now() - d.getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
@@ -50,19 +47,19 @@ function initials(firstName: string, lastName: string) {
   return ((firstName[0] || "") + (lastName[0] || "")).toUpperCase();
 }
 
-// Simple avatar colors based on first letter
-const COLORS = [
-  "#7ED957",
-  "#5B9CF6",
-  "#F97316",
-  "#A855F7",
-  "#EF4444",
-  "#14B8A6",
-  "#F59E0B",
-  "#EC4899",
+// Indigo/purple-family palette for avatar variety, no green
+const AVATAR_COLORS = [
+  colors.primary,
+  "#3b82f6",
+  "#8b5cf6",
+  "#06b6d4",
+  "#f59e0b",
+  "#ec4899",
+  "#22c55e",
+  "#ef4444",
 ];
 function avatarColor(name: string) {
-  return COLORS[name.charCodeAt(0) % COLORS.length];
+  return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 }
 
 export default function CommunityScreen() {
@@ -72,13 +69,10 @@ export default function CommunityScreen() {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [typingNames, setTypingNames] = useState<string[]>([]);
-  const [sending, setSending] = useState(false);
-
   const socketRef = useRef<Socket | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Load history then connect socket ──────────────────────────────────────
   useEffect(() => {
     loadHistory();
     connectSocket();
@@ -92,7 +86,6 @@ export default function CommunityScreen() {
       const { data } = await api.get("/api/community/messages");
       setMessages(data.messages);
     } catch {
-      // Show empty state — socket will still work
     } finally {
       setLoading(false);
     }
@@ -101,7 +94,6 @@ export default function CommunityScreen() {
   const connectSocket = async () => {
     const token = await SecureStore.getItemAsync("auth_token");
     if (!token) return;
-
     const socket = io(SOCKET_URL, {
       auth: { token },
       transports: ["websocket"],
@@ -110,16 +102,8 @@ export default function CommunityScreen() {
       reconnectionDelay: 2000,
     });
 
-    socket.on("connect", () => {
-      setConnected(true);
-      console.log("✅ Socket connected");
-    });
-
-    socket.on("disconnect", () => {
-      setConnected(false);
-      console.log("🔴 Socket disconnected");
-    });
-
+    socket.on("connect", () => setConnected(true));
+    socket.on("disconnect", () => setConnected(false));
     socket.on("new_message", (msg: Message) => {
       setMessages((prev) => [...prev, msg]);
       setTimeout(
@@ -127,13 +111,9 @@ export default function CommunityScreen() {
         100
       );
     });
-
     socket.on("typing_update", (names: string[]) => {
-      // Filter out current user's own name
-      const others = names.filter((n) => n !== user?.firstName);
-      setTypingNames(others);
+      setTypingNames(names.filter((n) => n !== user?.firstName));
     });
-
     socket.on("message_deleted", ({ messageId }: { messageId: string }) => {
       setMessages((prev) =>
         prev.map((m) =>
@@ -144,45 +124,31 @@ export default function CommunityScreen() {
       );
     });
 
-    socket.on("error", (err: { message: string }) => {
-      console.error("Socket error:", err.message);
-    });
-
     socketRef.current = socket;
   };
 
-  // ── Send message ──────────────────────────────────────────────────────────
   const sendMessage = useCallback(() => {
     const text = input.trim();
-    if (!text || !socketRef.current || sending) return;
-
-    setSending(true);
+    if (!text || !socketRef.current) return;
     socketRef.current.emit("send_message", { content: text });
     setInput("");
-    setSending(false);
-
-    // Stop typing indicator
     if (typingTimer.current) clearTimeout(typingTimer.current);
     socketRef.current.emit("typing_stop");
-  }, [input, sending]);
+  }, [input]);
 
-  // ── Typing indicator ──────────────────────────────────────────────────────
   const handleInputChange = (text: string) => {
     setInput(text);
     if (!socketRef.current) return;
-
     socketRef.current.emit("typing_start");
-
     if (typingTimer.current) clearTimeout(typingTimer.current);
-    typingTimer.current = setTimeout(() => {
-      socketRef.current?.emit("typing_stop");
-    }, 2500);
+    typingTimer.current = setTimeout(
+      () => socketRef.current?.emit("typing_stop"),
+      2500
+    );
   };
 
-  // ── Long press actions ────────────────────────────────────────────────────
   const handleLongPress = (msg: Message) => {
     if (msg.deleted) return;
-
     const isOwn = msg.user === user?._id;
     const opts: {
       text: string;
@@ -194,23 +160,20 @@ export default function CommunityScreen() {
       opts.push({
         text: "Delete message",
         style: "destructive",
-        onPress: () => {
+        onPress: () =>
           Alert.alert("Delete Message", "Delete this message for everyone?", [
             { text: "Cancel", style: "cancel" },
             {
               text: "Delete",
               style: "destructive",
-              onPress: () => {
+              onPress: () =>
                 socketRef.current?.emit("delete_message", {
                   messageId: msg._id,
-                });
-              },
+                }),
             },
-          ]);
-        },
+          ]),
       });
     }
-
     if (!isOwn) {
       opts.push({
         text: "Report message",
@@ -227,12 +190,10 @@ export default function CommunityScreen() {
         },
       });
     }
-
     opts.push({ text: "Cancel", style: "cancel", onPress: () => {} });
     Alert.alert("Message Options", undefined as any, opts);
   };
 
-  // ── Render message bubble ─────────────────────────────────────────────────
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isOwn = item.user === user?._id;
     const isDeleted = item.deleted;
@@ -247,9 +208,8 @@ export default function CommunityScreen() {
         delayLongPress={400}
       >
         <View style={[s.msgRow, isOwn && s.msgRowOwn]}>
-          {/* Avatar — only for others, only when name shown */}
           {!isOwn && (
-            <View style={[s.avatar, showName ? {} : s.avatarHidden]}>
+            <View style={[s.avatar, !showName && s.avatarHidden]}>
               {showName && (
                 <View style={[s.avatarCircle, { backgroundColor: color }]}>
                   <Text style={s.avatarText}>
@@ -259,16 +219,12 @@ export default function CommunityScreen() {
               )}
             </View>
           )}
-
           <View style={[s.bubbleWrap, isOwn && s.bubbleWrapOwn]}>
-            {/* Sender name */}
             {showName && !isOwn && (
               <Text style={[s.senderName, { color }]}>
                 {item.firstName} {item.lastName}
               </Text>
             )}
-
-            {/* Bubble */}
             <View
               style={[
                 s.bubble,
@@ -286,8 +242,6 @@ export default function CommunityScreen() {
                 {item.content}
               </Text>
             </View>
-
-            {/* Time */}
             <Text style={[s.time, isOwn && s.timeOwn]}>
               {timeLabel(item.createdAt)}
             </Text>
@@ -297,7 +251,6 @@ export default function CommunityScreen() {
     );
   };
 
-  // ── Typing indicator text ─────────────────────────────────────────────────
   const typingText = () => {
     if (typingNames.length === 0) return null;
     if (typingNames.length === 1) return `${typingNames[0]} is typing…`;
@@ -308,16 +261,18 @@ export default function CommunityScreen() {
 
   return (
     <SafeAreaView style={s.safe}>
-      {/* Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-          <Text style={s.backIcon}>‹</Text>
+          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={s.headerInfo}>
           <Text style={s.headerTitle}>Community</Text>
           <View style={s.headerStatus}>
             <View
-              style={[s.statusDot, connected ? s.statusGreen : s.statusGrey]}
+              style={[
+                s.statusDot,
+                connected ? s.statusActive : s.statusInactive,
+              ]}
             />
             <Text style={s.statusText}>
               {connected ? "Live" : "Connecting…"}
@@ -325,18 +280,17 @@ export default function CommunityScreen() {
           </View>
         </View>
         <View style={s.membersBadge}>
-          <Text style={s.membersText}>🏋️ Team</Text>
+          <Ionicons name="people-outline" size={13} color={colors.primary} />
+          <Text style={s.membersText}>Team</Text>
         </View>
       </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
       >
-        {/* Messages */}
         {loading ? (
-          <ActivityIndicator color="#7ED957" style={{ marginTop: 60 }} />
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 60 }} />
         ) : (
           <FlatList
             ref={flatListRef}
@@ -350,8 +304,12 @@ export default function CommunityScreen() {
             }
             ListEmptyComponent={
               <View style={s.emptyWrap}>
-                <Text style={s.emptyIcon}>💬</Text>
-                <Text style={s.emptyTitle}>Be the first to say hello!</Text>
+                <Ionicons
+                  name="chatbubbles-outline"
+                  size={44}
+                  color={colors.textTertiary}
+                />
+                <Text style={s.emptyTitle}>Be the first to say hello</Text>
                 <Text style={s.emptyText}>
                   This is the Team L-Evate community. All members are here.
                 </Text>
@@ -360,7 +318,6 @@ export default function CommunityScreen() {
           />
         )}
 
-        {/* Typing indicator */}
         {typingNames.length > 0 && (
           <View style={s.typingWrap}>
             <View style={s.typingDots}>
@@ -372,18 +329,16 @@ export default function CommunityScreen() {
           </View>
         )}
 
-        {/* Input bar */}
         <View style={s.inputBar}>
           <View style={s.inputWrap}>
             <TextInput
               style={s.input}
               placeholder="Message the community…"
-              placeholderTextColor="#3A3A3A"
+              placeholderTextColor={colors.textTertiary}
               value={input}
               onChangeText={handleInputChange}
               multiline
               maxLength={1000}
-              returnKeyType="default"
             />
           </View>
           <TouchableOpacity
@@ -394,7 +349,7 @@ export default function CommunityScreen() {
             onPress={sendMessage}
             disabled={!input.trim() || !connected}
           >
-            <Text style={s.sendIcon}>➤</Text>
+            <Ionicons name="send" size={16} color={colors.textOnPrimary} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -403,9 +358,7 @@ export default function CommunityScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
-
-  // Header
+  safe: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -414,21 +367,20 @@ const s = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 12,
     borderBottomWidth: 0.5,
-    borderBottomColor: "rgba(255,255,255,0.1)",
+    borderBottomColor: colors.border,
   },
   backBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  backIcon: { color: "#fff", fontSize: 26, lineHeight: 30 },
   headerInfo: { flex: 1 },
-  headerTitle: { color: "#fff", fontSize: 17, fontWeight: "700" },
+  headerTitle: { color: colors.textPrimary, fontSize: 17, fontWeight: "700" },
   headerStatus: {
     flexDirection: "row",
     alignItems: "center",
@@ -436,22 +388,23 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusGreen: { backgroundColor: "#7ED957" },
-  statusGrey: { backgroundColor: "#5A5A5A" },
-  statusText: { color: "#9A9A9A", fontSize: 11 },
+  statusActive: { backgroundColor: colors.primary },
+  statusInactive: { backgroundColor: colors.textTertiary },
+  statusText: { color: colors.textSecondary, fontSize: 11 },
   membersBadge: {
-    backgroundColor: "rgba(126,217,87,0.1)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: colors.primaryDim,
     borderWidth: 0.5,
-    borderColor: "rgba(126,217,87,0.25)",
+    borderColor: colors.borderStrong,
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  membersText: { color: "#7ED957", fontSize: 12, fontWeight: "600" },
+  membersText: { color: colors.primary, fontSize: 12, fontWeight: "600" },
 
-  // Messages
   messageList: { paddingHorizontal: 16, paddingVertical: 12, gap: 2 },
-
   msgRow: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -459,7 +412,6 @@ const s = StyleSheet.create({
     marginBottom: 2,
   },
   msgRowOwn: { flexDirection: "row-reverse" },
-
   avatar: { width: 32, flexShrink: 0 },
   avatarHidden: { opacity: 0 },
   avatarCircle: {
@@ -469,41 +421,35 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { color: "#0D0D0D", fontSize: 11, fontWeight: "800" },
-
+  avatarText: { color: "#fff", fontSize: 11, fontWeight: "800" },
   bubbleWrap: { maxWidth: "75%", gap: 3 },
   bubbleWrapOwn: { alignItems: "flex-end" },
-
   senderName: {
     fontSize: 12,
     fontWeight: "700",
     paddingLeft: 4,
     marginBottom: 1,
   },
-
   bubble: { borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10 },
-  bubbleOwn: { backgroundColor: "#7ED957", borderBottomRightRadius: 4 },
+  bubbleOwn: { backgroundColor: colors.primary, borderBottomRightRadius: 4 },
   bubbleOther: {
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     borderBottomLeftRadius: 4,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
   },
   bubbleDeleted: {
-    backgroundColor: "#161616",
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: colors.border,
   },
-
   bubbleText: { fontSize: 14, lineHeight: 20 },
-  bubbleTextOwn: { color: "#0D0D0D", fontWeight: "500" },
-  bubbleTextOther: { color: "#fff" },
-  bubbleTextDeleted: { color: "#3A3A3A", fontStyle: "italic" },
-
-  time: { color: "#3A3A3A", fontSize: 10, paddingLeft: 4 },
+  bubbleTextOwn: { color: colors.textOnPrimary, fontWeight: "500" },
+  bubbleTextOther: { color: colors.textPrimary },
+  bubbleTextDeleted: { color: colors.textTertiary, fontStyle: "italic" },
+  time: { color: colors.textTertiary, fontSize: 10, paddingLeft: 4 },
   timeOwn: { paddingLeft: 0, paddingRight: 4 },
 
-  // Typing
   typingWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -516,11 +462,10 @@ const s = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: "#5A5A5A",
+    backgroundColor: colors.textTertiary,
   },
-  typingText: { color: "#5A5A5A", fontSize: 12, fontStyle: "italic" },
+  typingText: { color: colors.textTertiary, fontSize: 12, fontStyle: "italic" },
 
-  // Input
   inputBar: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -528,49 +473,42 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 0.5,
-    borderTopColor: "rgba(255,255,255,0.1)",
-    backgroundColor: "#161616",
+    borderTopColor: colors.border,
+    backgroundColor: colors.surface,
   },
   inputWrap: {
     flex: 1,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     maxHeight: 120,
   },
-  input: { color: "#fff", fontSize: 14, lineHeight: 20 },
+  input: { color: colors.textPrimary, fontSize: 14, lineHeight: 20 },
   sendBtn: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "#7ED957",
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
-  sendBtnDisabled: { backgroundColor: "#2A2A2A" },
-  sendIcon: { color: "#0D0D0D", fontSize: 16, fontWeight: "700" },
+  sendBtnDisabled: { backgroundColor: colors.surfaceAlt },
 
-  // Empty
   emptyWrap: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 40,
     paddingTop: 80,
+    gap: 14,
   },
-  emptyIcon: { fontSize: 48, marginBottom: 14 },
-  emptyTitle: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
+  emptyTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: "700" },
   emptyText: {
-    color: "#5A5A5A",
+    color: colors.textTertiary,
     fontSize: 13,
     textAlign: "center",
     lineHeight: 20,

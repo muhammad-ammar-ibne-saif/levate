@@ -9,8 +9,10 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { colors, spacing } from "@/lib/theme";
 import api from "@/lib/api";
 
 export default function ChangePasswordScreen() {
@@ -58,10 +60,13 @@ export default function ChangePasswordScreen() {
         contentContainerStyle={s.scroll}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
         <View style={s.header}>
           <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-            <Text style={s.backIcon}>‹</Text>
+            <Ionicons
+              name="chevron-back"
+              size={26}
+              color={colors.textPrimary}
+            />
           </TouchableOpacity>
         </View>
 
@@ -70,9 +75,12 @@ export default function ChangePasswordScreen() {
           Update your login credentials to keep your account secure.
         </Text>
 
-        {/* Info card */}
         <View style={s.infoCard}>
-          <Text style={s.infoIcon}>🔒</Text>
+          <Ionicons
+            name="lock-closed-outline"
+            size={18}
+            color={colors.primary}
+          />
           <Text style={s.infoText}>
             Your new password must be at least 6 characters long.
           </Text>
@@ -116,33 +124,46 @@ export default function ChangePasswordScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#0D0D0D" },
-  scroll: { padding: 24 },
-  header: { marginBottom: 24 },
+  safe: { flex: 1, backgroundColor: colors.background },
+  scroll: { padding: spacing.xl },
+  header: { marginBottom: spacing.xl },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.surface,
     borderWidth: 0.5,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  backIcon: { color: "#fff", fontSize: 26, lineHeight: 30 },
-  title: { color: "#fff", fontSize: 26, fontWeight: "800", marginBottom: 6 },
-  sub: { color: "#9A9A9A", fontSize: 14, lineHeight: 22, marginBottom: 24 },
+  title: {
+    color: colors.textPrimary,
+    fontSize: 26,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  sub: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: spacing.xl,
+  },
   infoCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "rgba(126,217,87,0.06)",
+    backgroundColor: colors.primaryDim,
     borderWidth: 0.5,
-    borderColor: "rgba(126,217,87,0.2)",
+    borderColor: colors.borderStrong,
     borderRadius: 12,
     padding: 14,
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
-  infoIcon: { fontSize: 20 },
-  infoText: { color: "#9A9A9A", fontSize: 13, lineHeight: 20, flex: 1 },
+  infoText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 20,
+    flex: 1,
+  },
 });

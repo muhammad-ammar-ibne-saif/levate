@@ -1,391 +1,523 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  View, Text, TouchableOpacity, ScrollView, TextInput,
+  StyleSheet, Alert, Platform,
+} from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/store/auth";
-import { colors, radius, spacing } from "../../lib/theme";
+import { colors, radius, spacing } from "@/lib/theme";
 
-// ── Onboarding question flow — runs once after signup ────────────────────────
-// Collects: goal, fitness level, availability (days/week)
-// This is what personalises the program shown afterwards.
+// ── Total steps ───────────────────────────────────────────────────────────────
+const TOTAL_STEPS = 12;
 
-type IconName = React.ComponentProps<typeof Ionicons>["name"];
-
-interface Option {
-  id: string;
-  title: string;
-  sub: string;
-  icon: IconName;
+// ── Shared option card ────────────────────────────────────────────────────────
+function OptionCard({
+  title, sub, selected, onPress,
+}: { title: string; sub?: string; selected: boolean; onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      style={[s.option, selected && s.optionActive]}
+      onPress={onPress}
+      activeOpacity={0.75}
+    >
+      <View style={{ flex: 1 }}>
+        <Text style={[s.optionTitle, selected && s.optionTitleActive]}>{title}</Text>
+        {sub ? <Text style={[s.optionSub, selected && s.optionSubActive]}>{sub}</Text> : null}
+      </View>
+      {selected && <Ionicons name="checkmark" size={16} color={colors.primary} />}
+    </TouchableOpacity>
+  );
 }
 
-const GOAL_OPTIONS: Option[] = [
-  {
-    id: "race",
-    title: "Race Performance",
-    sub: "Train for your next 5K, 10K or marathon",
-    icon: "flag-outline",
-  },
-  {
-    id: "strength",
-    title: "Strength Gain",
-    sub: "Build muscle and increase lifting power",
-    icon: "barbell-outline",
-  },
-  {
-    id: "hybrid",
-    title: "Hybrid Fitness",
-    sub: "Balance running and lifting performance",
-    icon: "rocket-outline",
-  },
-  {
-    id: "general",
-    title: "General Fitness",
-    sub: "Stay active and build healthy habits",
-    icon: "heart-outline",
-  },
-];
-
-const LEVEL_OPTIONS: Option[] = [
-  {
-    id: "beginner",
-    title: "Beginner",
-    sub: "New to structured training",
-    icon: "leaf-outline",
-  },
-  {
-    id: "intermediate",
-    title: "Intermediate",
-    sub: "Training consistently for 6+ months",
-    icon: "trending-up-outline",
-  },
-  {
-    id: "advanced",
-    title: "Advanced",
-    sub: "Experienced with hybrid or race training",
-    icon: "trophy-outline",
-  },
-];
-
-const DAYS_OPTIONS = [3, 4, 5, 6];
-
-type Step = "goal" | "level" | "days";
+// ── Chip selector ─────────────────────────────────────────────────────────────
+function ChipRow({
+  label, options, value, onChange,
+}: { label: string; options: (string | number)[]; value: string | number; onChange: (v: string | number) => void }) {
+  return (
+    <View style={{ marginBottom: 16 }}>
+      <Text style={s.chipLabel}>{label}</Text>
+      <View style={s.chipRow}>
+        {options.map(o => (
+          <TouchableOpacity
+            key={String(o)}
+            style={[s.chip, value === o && s.chipActive]}
+            onPress={() => onChange(o)}
+          >
+            <Text style={[s.chipText, value === o && s.chipTextActive]}>{o}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
 
 export default function PersonalizeScreen() {
   const { updateProfile } = useAuthStore();
-  const [step, setStep] = useState<Step>("goal");
-  const [goal, setGoal] = useState<string | null>(null);
-  const [level, setLevel] = useState<string | null>(null);
-  const [days, setDays] = useState<number | null>(null);
+  const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
 
-  const stepIndex = { goal: 0, level: 1, days: 2 }[step];
-  const totalSteps = 3;
+  // All answers
+  const [name, setName]             = useState("");
+  const [dob, setDob]               = useState("");
+  const [mainGoal, setMainGoal]     = useState("");
+  const [strengthExp, setStrengthExp] = useState("");
+  const [condExp, setCondExp]       = useState("");
+  const [runExp, setRunExp]         = useState("");
+  const [weeklyKm, setWeeklyKm]     = useState(20);
+  const [raceName, setRaceName]     = useState("");
+  const [raceType, setRaceType]     = useState("");
+  const [raceDate, setRaceDate]     = useState("");
+  const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
+  const [strengthSessions, setStrengthSessions] = useState(1);
+  const [runSessions, setRunSessions]     = useState(1);
+  const [condSessions, setCondSessions]   = useState(1);
+  const [strengthFocus, setStrengthFocus] = useState("");
+  const [sessionLength, setSessionLength] = useState(45);
+  const [facility, setFacility]     = useState("");
+  const [runGoal, setRunGoal]       = useState("");
+  const [paceMin, setPaceMin]       = useState(21);
+  const [paceSec, setPaceSec]       = useState(0);
+  const [extra, setExtra]           = useState("");
 
-  const handleNext = async () => {
-    if (step === "goal") {
-      if (!goal) return;
-      setStep("level");
-      return;
+  const goNext = () => setStep(s => Math.min(s + 1, TOTAL_STEPS));
+  const goBack = () => {
+    if (step === 1) router.back();
+    else setStep(s => s - 1);
+  };
+
+  const canContinue = (): boolean => {
+    switch (step) {
+      case 1: return name.trim().length > 0;
+      case 2: return !!mainGoal;
+      case 3: return !!strengthExp && !!condExp && !!runExp;
+      case 4: return true; // skippable
+      case 5: return sessionsPerWeek > 0 && (strengthSessions + runSessions + condSessions) === sessionsPerWeek;
+      case 6: return !!strengthFocus;
+      case 7: return !!sessionLength;
+      case 8: return !!facility;
+      case 9: return !!runGoal;
+      case 10: return true;
+      case 11: return true;
+      case 12: return true;
+      default: return true;
     }
-    if (step === "level") {
-      if (!level) return;
-      setStep("days");
-      return;
-    }
-    // Final step — save everything and go to main app
-    if (!days) return;
+  };
+
+  const handleFinish = async () => {
     setSaving(true);
     try {
+      const goals = mainGoal === "Race & Competition" ? ["race"]
+        : mainGoal === "Hybrid Training" ? ["hybrid"]
+        : mainGoal === "Muscle Build" ? ["strength"]
+        : ["general"];
+
       await updateProfile({
-        goals: [goal!],
-        fitnessLevel: level,
-        daysPerWeek: days,
+        firstName: name.split(" ")[0] || name,
+        lastName: name.split(" ").slice(1).join(" ") || "",
+        goals,
+        daysPerWeek: sessionsPerWeek,
+        fitnessLevel: strengthExp.toLowerCase(),
         onboardingComplete: true,
+        // Store full onboarding data as JSON in a notes field
+        onboardingData: JSON.stringify({
+          dob, mainGoal, strengthExp, condExp, runExp, weeklyKm,
+          raceName, raceType, raceDate,
+          sessionsPerWeek, strengthSessions, runSessions, condSessions,
+          strengthFocus, sessionLength, facility, runGoal,
+          paceMin, paceSec, extra,
+        }),
       } as any);
       router.replace("/app/(tabs)/home");
     } catch {
-      Alert.alert(
-        "Error",
-        "Failed to save your preferences. Please try again."
-      );
+      Alert.alert("Error", "Failed to save your preferences. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleBack = () => {
-    if (step === "level") setStep("goal");
-    else if (step === "days") setStep("level");
-    else router.back();
-  };
+  const expLevels = ["Beginner", "Intermediate", "Advanced", "Returning"];
+  const raceTypes = ["5KM", "10KM", "Half Marathon", "Marathon", "Hyrox"];
+  const minutes   = Array.from({ length: 20 }, (_, i) => i + 15);
+  const seconds   = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
-  const canContinue =
-    (step === "goal" && !!goal) ||
-    (step === "level" && !!level) ||
-    (step === "days" && !!days);
+  const totalSessions = strengthSessions + runSessions + condSessions;
+  const splitValid = totalSessions === sessionsPerWeek;
+
+  // ── Step renderer ─────────────────────────────────────────────────────────
+  const renderStep = () => {
+    switch (step) {
+
+      // Step 1 — Name + DOB
+      case 1: return (
+        <>
+          <Text style={s.stepTag}>Step 1 of {TOTAL_STEPS}</Text>
+          <Text style={s.title}>Who are we working with?</Text>
+          <Text style={s.sub}>Used to personalise your experience and tailor training intensity.</Text>
+          <Text style={s.fieldLabel}>Your Name</Text>
+          <TextInput
+            style={s.textInput}
+            placeholder="e.g. Isabelle"
+            placeholderTextColor={colors.textTertiary}
+            value={name}
+            onChangeText={setName}
+          />
+          <Text style={s.fieldLabel}>Date of Birth</Text>
+          <TextInput
+            style={s.textInput}
+            placeholder="DD/MM/YYYY"
+            placeholderTextColor={colors.textTertiary}
+            value={dob}
+            onChangeText={setDob}
+            keyboardType="numeric"
+          />
+          <Text style={s.hint}>Used to tailor training intensity and recovery.</Text>
+        </>
+      );
+
+      // Step 2 — Main goal
+      case 2: return (
+        <>
+          <Text style={s.stepTag}>Step 2 of {TOTAL_STEPS}</Text>
+          <Text style={s.title}>What's your main goal?</Text>
+          <View style={s.optionList}>
+            {[
+              { t: "Race & Competition", s: "I'm training for a specific event" },
+              { t: "Hybrid Training",    s: "I want to be strong, fast and conditioned" },
+              { t: "Muscle Build",       s: "Focus on strength and physique" },
+              { t: "Run Improvements",   s: "Become a faster, more durable runner" },
+            ].map(o => (
+              <OptionCard key={o.t} title={o.t} sub={o.s} selected={mainGoal === o.t} onPress={() => setMainGoal(o.t)} />
+            ))}
+          </View>
+        </>
+      );
+
+      // Step 3 — Experience
+      case 3: return (
+        <>
+          <Text style={s.stepTag}>Step 3 of {TOTAL_STEPS}</Text>
+          <Text style={s.title}>How experienced are you?</Text>
+          <ChipRow label="Strength Training" options={expLevels} value={strengthExp} onChange={v => setStrengthExp(String(v))} />
+          <ChipRow label="Conditioning Style" options={expLevels} value={condExp} onChange={v => setCondExp(String(v))} />
+          <ChipRow label="Running" options={expLevels} value={runExp} onChange={v => setRunExp(String(v))} />
+          <Text style={s.fieldLabel}>Weekly Running Volume</Text>
+          <View style={s.sliderRow}>
+            <TouchableOpacity style={s.sliderBtn} onPress={() => setWeeklyKm(v => Math.max(0, v - 5))}>
+              <Ionicons name="remove" size={18} color={colors.textPrimary} />
+            </TouchableOpacity>
+            <Text style={s.sliderVal}>{weeklyKm} km</Text>
+            <TouchableOpacity style={s.sliderBtn} onPress={() => setWeeklyKm(v => Math.min(100, v + 5))}>
+              <Ionicons name="add" size={18} color={colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
+        </>
+      );
+
+      // Step 4 — Upcoming race (skippable)
+      case 4: return (
+        <>
+          <Text style={s.stepTag}>Step 4 of {TOTAL_STEPS}</Text>
+          <Text style={s.title}>Got an upcoming race?</Text>
+          <Text style={s.sub}>All fields optional — skip if you're not racing yet.</Text>
+          <Text style={s.fieldLabel}>Race name / block</Text>
+          <TextInput style={s.textInput} placeholder="e.g. Get Faster Block" placeholderTextColor={colors.textTertiary} value={raceName} onChangeText={setRaceName} />
+          <Text style={s.fieldLabel}>Race Type</Text>
+          <View style={s.chipRow}>
+            {raceTypes.map(r => (
+              <TouchableOpacity key={r} style={[s.chip, raceType === r && s.chipActive]} onPress={() => setRaceType(r)}>
+                <Text style={[s.chipText, raceType === r && s.chipTextActive]}>{r}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={[s.fieldLabel, { marginTop: 16 }]}>Race Date</Text>
+          <TextInput style={s.textInput} placeholder="DD/MM/YYYY" placeholderTextColor={colors.textTertiary} value={raceDate} onChangeText={setRaceDate} keyboardType="numeric" />
+        </>
+      );
+
+      // Step 5 — Training split
+      case 5: return (
+        <>
+          <Text style={s.stepTag}>Step 5 of {TOTAL_STEPS}</Text>
+          <Text style={s.title}>How do you want to train?</Text>
+          <ChipRow label="Sessions per week" options={[2, 3, 4, 5, 6, 7]} value={sessionsPerWeek} onChange={v => { setSessionsPerWeek(Number(v)); setStrengthSessions(1); setRunSessions(1); setCondSessions(Math.max(0, Number(v) - 2)); }} />
+          <ChipRow label="Strength" options={[0, 1, 2, 3, 4, 5, 6, 7]} value={strengthSessions} onChange={v => setStrengthSessions(Number(v))} />
+          <ChipRow label="Run" options={[0, 1, 2, 3, 4, 5, 6, 7]} value={runSessions} onChange={v => setRunSessions(Number(v))} />
+          <ChipRow label="Conditioning" options={[0, 1, 2, 3, 4, 5, 6, 7]} value={condSessions} onChange={v => setCondSessions(Number(v))} />
+          <View style={[s.splitInfo, splitValid ? s.splitInfoOk : s.splitInfoBad]}>
+            <Ionicons name={splitValid ? "checkmark-circle" : "alert-circle-outline"} size={16} color={splitValid ? colors.success : colors.warning} />
+            <Text style={[s.splitInfoText, { color: splitValid ? colors.success : colors.warning }]}>
+              Total: {totalSessions} / {sessionsPerWeek} sessions {splitValid ? "— perfect!" : "— adjust to match"}
+            </Text>
+          </View>
+        </>
+      );
+
+      // Step 6 — Strength focus
+      case 6: return (
+        <>
+          <Text style={s.stepTag}>Step 6 of {TOTAL_STEPS}</Text>
+          <Text style={s.title}>Strength Focus</Text>
+          <View style={s.optionList}>
+            {[
+              { t: "Get Stronger",      s: "Lower reps, heavier loads (3–6 reps)" },
+              { t: "Gain Muscle",       s: "Hypertrophy ranges (8–12 reps)" },
+              { t: "Muscle Endurance",  s: "Higher reps, conditioning bias (12–20)" },
+            ].map(o => (
+              <OptionCard key={o.t} title={o.t} sub={o.s} selected={strengthFocus === o.t} onPress={() => setStrengthFocus(o.t)} />
+            ))}
+          </View>
+        </>
+      );
+
+      // Step 7 — Session length
+      case 7: return (
+        <>
+          <Text style={s.stepTag}>Step 7 of {TOTAL_STEPS}</Text>
+          <Text style={s.title}>Session Length</Text>
+          <Text style={s.sub}>How long do you have per session?</Text>
+          <View style={s.chipRow}>
+            {[30, 45, 60, 75].map(m => (
+              <TouchableOpacity key={m} style={[s.bigChip, sessionLength === m && s.bigChipActive]} onPress={() => setSessionLength(m)}>
+                <Text style={[s.bigChipText, sessionLength === m && s.bigChipTextActive]}>{m}</Text>
+                <Text style={[s.bigChipSub, sessionLength === m && s.bigChipSubActive]}>min</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
+      );
+
+      // Step 8 — Facility access
+      case 8: return (
+        <>
+          <Text style={s.stepTag}>Step 8 of {TOTAL_STEPS}</Text>
+          <Text style={s.title}>Facility Access</Text>
+          <View style={s.optionList}>
+            {[
+              { t: "Full Functional Set Up", s: "Sled, ski erg, rower, the lot" },
+              { t: "Standard Gym",           s: "Barbells, dumbbells, machines" },
+              { t: "Home Gym Basics",        s: "DBs, bands, kettlebell" },
+              { t: "Minimal Equipment",      s: "Bodyweight + improvise" },
+            ].map(o => (
+              <OptionCard key={o.t} title={o.t} sub={o.s} selected={facility === o.t} onPress={() => setFacility(o.t)} />
+            ))}
+          </View>
+        </>
+      );
+
+      // Step 9 — Run goal
+      case 9: return (
+        <>
+          <Text style={s.stepTag}>Step 9 of {TOTAL_STEPS}</Text>
+          <Text style={s.title}>Run Goal</Text>
+          <View style={s.optionList}>
+            {[
+              { t: "Start From Scratch", s: "Build the habit safely" },
+              { t: "Get Faster",         s: "Sharpen pace and threshold" },
+              { t: "Build Endurance",    s: "Go further, recover better" },
+            ].map(o => (
+              <OptionCard key={o.t} title={o.t} sub={o.s} selected={runGoal === o.t} onPress={() => setRunGoal(o.t)} />
+            ))}
+          </View>
+        </>
+      );
+
+      // Step 10 — 5KM pace
+      case 10: return (
+        <>
+          <Text style={s.stepTag}>Step 10 of {TOTAL_STEPS}</Text>
+          <Text style={s.title}>Current 5KM Pace</Text>
+          <Text style={s.sub}>Roughly how fast do you currently run a 5km?</Text>
+          <View style={s.paceRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.paceLabel}>Minutes</Text>
+              <View style={s.paceScroll}>
+                {minutes.map(m => (
+                  <TouchableOpacity key={m} style={[s.paceItem, paceMin === m && s.paceItemActive]} onPress={() => setPaceMin(m)}>
+                    <Text style={[s.paceItemText, paceMin === m && s.paceItemTextActive]}>{m}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.paceLabel}>Seconds</Text>
+              <View style={s.paceScroll}>
+                {seconds.map(sec => (
+                  <TouchableOpacity key={sec} style={[s.paceItem, paceSec === sec && s.paceItemActive]} onPress={() => setPaceSec(sec)}>
+                    <Text style={[s.paceItemText, paceSec === sec && s.paceItemTextActive]}>{String(sec).padStart(2, "0")}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+          <View style={s.paceSummary}>
+            <Text style={s.paceSummaryText}>{paceMin}:{String(paceSec).padStart(2, "0")} / 5km</Text>
+          </View>
+        </>
+      );
+
+      // Step 11 — Anything else
+      case 11: return (
+        <>
+          <Text style={s.stepTag}>Step 11 of {TOTAL_STEPS}</Text>
+          <Text style={s.title}>Anything else we should know?</Text>
+          <Text style={s.sub}>Injuries, preferences, anything that shapes how you train best.</Text>
+          <TextInput
+            style={[s.textInput, { height: 120, textAlignVertical: "top", paddingTop: 12 }]}
+            placeholder="e.g. I have a knee issue, prefer morning sessions..."
+            placeholderTextColor={colors.textTertiary}
+            value={extra}
+            onChangeText={setExtra}
+            multiline
+          />
+        </>
+      );
+
+      // Step 12 — Confirm selections
+      case 12: return (
+        <>
+          <Text style={s.stepTag}>Step 12 of {TOTAL_STEPS}</Text>
+          <Text style={s.title}>Confirm Your Selections</Text>
+          <Text style={s.sub}>Review everything before we build your plan.</Text>
+          <View style={s.confirmList}>
+            {[
+              { label: "Name",            val: name || "—" },
+              { label: "Main Goal",       val: mainGoal || "—" },
+              { label: "Experience",      val: strengthExp ? `S:${strengthExp} · C:${condExp} · R:${runExp} · ${weeklyKm}km/wk` : "—" },
+              { label: "Race",            val: raceName ? `${raceName}${raceType ? " — " + raceType : ""}${raceDate ? " — " + raceDate : ""}` : "No race set" },
+              { label: "Training Split",  val: sessionsPerWeek ? `${sessionsPerWeek}/wk · ${strengthSessions}S/${runSessions}R/${condSessions}C` : "—" },
+              { label: "Strength Focus",  val: strengthFocus || "—" },
+              { label: "Session Length",  val: sessionLength ? `${sessionLength} min` : "—" },
+              { label: "Facility",        val: facility || "—" },
+              { label: "Run Goal",        val: runGoal || "—" },
+              { label: "5KM Pace",        val: `${paceMin}:${String(paceSec).padStart(2, "0")}` },
+              { label: "Notes",           val: extra || "None" },
+            ].map(item => (
+              <View key={item.label} style={s.confirmRow}>
+                <Text style={s.confirmLabel}>{item.label}</Text>
+                <Text style={s.confirmVal}>{item.val}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      );
+
+      default: return null;
+    }
+  };
 
   return (
     <SafeAreaView style={s.safe}>
-      {/* Header with progress */}
+      {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity style={s.backBtn} onPress={handleBack}>
-          <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
+        <TouchableOpacity style={s.backBtn} onPress={goBack}>
+          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={s.progressTrack}>
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <View
-              key={i}
-              style={[s.progressSeg, i <= stepIndex && s.progressSegActive]}
-            />
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+            <View key={i} style={[s.progressSeg, i < step && s.progressSegActive]} />
           ))}
         </View>
       </View>
 
-      <View style={s.content}>
-        {/* ── Step 1: Goal ── */}
-        {step === "goal" && (
-          <>
-            <Text style={s.stepLabel}>Step 1 of 3</Text>
-            <Text style={s.title}>What's your goal?</Text>
-            <Text style={s.sub}>
-              We find out your goal, availability and fitness level so you're
-              clear on how to get fitter — no guesswork.
-            </Text>
-            <View style={s.optionList}>
-              {GOAL_OPTIONS.map((opt) => (
-                <OptionCard
-                  key={opt.id}
-                  option={opt}
-                  selected={goal === opt.id}
-                  onPress={() => setGoal(opt.id)}
-                />
-              ))}
-            </View>
-          </>
-        )}
+      <ScrollView
+        contentContainerStyle={s.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {renderStep()}
+      </ScrollView>
 
-        {/* ── Step 2: Fitness level ── */}
-        {step === "level" && (
-          <>
-            <Text style={s.stepLabel}>Step 2 of 3</Text>
-            <Text style={s.title}>Where are you starting from?</Text>
-            <Text style={s.sub}>
-              This helps us calibrate your first few weeks correctly.
-            </Text>
-            <View style={s.optionList}>
-              {LEVEL_OPTIONS.map((opt) => (
-                <OptionCard
-                  key={opt.id}
-                  option={opt}
-                  selected={level === opt.id}
-                  onPress={() => setLevel(opt.id)}
-                />
-              ))}
-            </View>
-          </>
-        )}
-
-        {/* ── Step 3: Days per week ── */}
-        {step === "days" && (
-          <>
-            <Text style={s.stepLabel}>Step 3 of 3</Text>
-            <Text style={s.title}>How many days can you train?</Text>
-            <Text style={s.sub}>
-              Your plan will only include sessions that fit your schedule.
-            </Text>
-            <View style={s.daysGrid}>
-              {DAYS_OPTIONS.map((d) => {
-                const on = days === d;
-                return (
-                  <TouchableOpacity
-                    key={d}
-                    onPress={() => setDays(d)}
-                    style={[s.dayCard, on && s.dayCardActive]}
-                  >
-                    <Text style={[s.dayNum, on && s.dayNumActive]}>{d}</Text>
-                    <Text style={[s.dayLabel, on && s.dayLabelActive]}>
-                      days / week
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </>
-        )}
-      </View>
-
-      {/* Footer button */}
+      {/* Footer */}
       <View style={s.footer}>
-        <Button
-          label={
-            step === "days"
-              ? saving
-                ? "Setting up…"
-                : "Start Training"
-              : "Continue"
-          }
-          onPress={handleNext}
-          loading={saving}
-          disabled={!canContinue}
-        />
+        {step === 4 && (
+          <TouchableOpacity style={s.skipBtn} onPress={goNext}>
+            <Text style={s.skipText}>No Race — Skip</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={[s.continueBtn, !canContinue() && s.continueBtnDisabled]}
+          onPress={step === TOTAL_STEPS ? handleFinish : goNext}
+          disabled={!canContinue() || saving}
+        >
+          <Text style={s.continueBtnText}>
+            {step === TOTAL_STEPS ? (saving ? "Setting up…" : "Start Training") : "Continue"}
+          </Text>
+          {step < TOTAL_STEPS && <Ionicons name="arrow-forward" size={16} color={colors.textOnPrimary} />}
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
-function OptionCard({
-  option,
-  selected,
-  onPress,
-}: {
-  option: Option;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      style={[s.optionCard, selected && s.optionCardActive]}
-      onPress={onPress}
-      activeOpacity={0.75}
-    >
-      <View style={[s.optionIcon, selected && s.optionIconActive]}>
-        <Ionicons
-          name={option.icon}
-          size={22}
-          color={selected ? colors.primary : colors.textSecondary}
-        />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={s.optionTitle}>{option.title}</Text>
-        <Text style={s.optionSub}>{option.sub}</Text>
-      </View>
-      <View style={[s.radio, selected && s.radioActive]}>
-        {selected && (
-          <Ionicons name="checkmark" size={13} color={colors.textOnPrimary} />
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-}
-
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.surface,
-    borderWidth: 0.5,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  progressTrack: { flex: 1, flexDirection: "row", gap: 6 },
-  progressSeg: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.surfaceAlt,
-  },
+  header: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
+  progressTrack: { flex: 1, flexDirection: "row", gap: 3 },
+  progressSeg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: colors.surfaceAlt },
   progressSegActive: { backgroundColor: colors.primary },
 
-  content: { flex: 1, paddingHorizontal: spacing.xl, paddingTop: spacing.lg },
-  stepLabel: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 10,
-  },
-  title: {
-    color: colors.textPrimary,
-    fontSize: 26,
-    fontWeight: "800",
-    marginBottom: 10,
-    lineHeight: 32,
-  },
-  sub: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 22,
-    marginBottom: spacing.xl,
-  },
+  scroll: { paddingHorizontal: 20, paddingBottom: 20 },
+  stepTag: { color: colors.primary, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 10 },
+  title: { color: colors.textPrimary, fontSize: 26, fontWeight: "800", marginBottom: 8, lineHeight: 32 },
+  sub: { color: colors.textSecondary, fontSize: 14, lineHeight: 22, marginBottom: 20 },
+  hint: { color: colors.textTertiary, fontSize: 12, marginTop: 8, lineHeight: 18 },
 
-  optionList: { gap: spacing.md },
-  optionCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  optionCardActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryDim,
-  },
-  optionIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surfaceAlt,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  optionIconActive: { backgroundColor: "rgba(122,61,240,0.15)" },
-  optionTitle: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 2,
-  },
-  optionSub: { color: colors.textSecondary, fontSize: 12.5, lineHeight: 18 },
-  radio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  radioActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  fieldLabel: { color: colors.textSecondary, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, marginTop: 4 },
+  textInput: { backgroundColor: colors.surface, borderRadius: radius.sm, borderWidth: 0.5, borderColor: colors.border, paddingHorizontal: 16, paddingVertical: 14, color: colors.textPrimary, fontSize: 15, marginBottom: 14 },
 
-  daysGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md },
-  dayCard: {
-    width: "47%",
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    paddingVertical: spacing.xl,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  dayCardActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryDim,
-  },
-  dayNum: { color: colors.textPrimary, fontSize: 32, fontWeight: "800" },
-  dayNumActive: { color: colors.primary },
-  dayLabel: { color: colors.textSecondary, fontSize: 12, marginTop: 4 },
-  dayLabelActive: { color: colors.primary },
+  optionList: { gap: 10 },
+  option: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.surface, borderRadius: radius.md, padding: 16, borderWidth: 1, borderColor: colors.border },
+  optionActive: { borderColor: colors.primary, backgroundColor: colors.primaryDim },
+  optionTitle: { color: colors.textPrimary, fontSize: 14, fontWeight: "700" },
+  optionTitleActive: { color: colors.primary },
+  optionSub: { color: colors.textTertiary, fontSize: 12, marginTop: 2 },
+  optionSubActive: { color: colors.textSecondary },
 
-  footer: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xxl,
-    paddingTop: spacing.md,
-  },
+  chipLabel: { color: colors.textSecondary, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { color: colors.textSecondary, fontSize: 13, fontWeight: "600" },
+  chipTextActive: { color: colors.textOnPrimary },
+
+  bigChip: { flex: 1, paddingVertical: 20, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border, alignItems: "center" },
+  bigChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  bigChipText: { color: colors.textPrimary, fontSize: 22, fontWeight: "800" },
+  bigChipTextActive: { color: colors.textOnPrimary },
+  bigChipSub: { color: colors.textTertiary, fontSize: 11, marginTop: 2 },
+  bigChipSubActive: { color: "rgba(255,255,255,0.7)" },
+
+  sliderRow: { flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 16 },
+  sliderBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
+  sliderVal: { flex: 1, textAlign: "center", color: colors.textPrimary, fontSize: 20, fontWeight: "800" },
+
+  splitInfo: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: radius.sm, borderWidth: 0.5, marginTop: 4 },
+  splitInfoOk: { backgroundColor: "rgba(34,197,94,0.08)", borderColor: "rgba(34,197,94,0.3)" },
+  splitInfoBad: { backgroundColor: "rgba(245,158,11,0.08)", borderColor: "rgba(245,158,11,0.3)" },
+  splitInfoText: { fontSize: 13, fontWeight: "500" },
+
+  paceRow: { flexDirection: "row", gap: 16 },
+  paceLabel: { color: colors.textSecondary, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, textAlign: "center" },
+  paceScroll: { gap: 4 },
+  paceItem: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius.sm, alignItems: "center", backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border },
+  paceItemActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  paceItemText: { color: colors.textSecondary, fontSize: 16, fontWeight: "600" },
+  paceItemTextActive: { color: colors.textOnPrimary },
+  paceSummary: { marginTop: 16, alignItems: "center", backgroundColor: colors.primaryDim, borderRadius: radius.sm, paddingVertical: 12, borderWidth: 0.5, borderColor: colors.borderStrong },
+  paceSummaryText: { color: colors.primary, fontSize: 20, fontWeight: "800" },
+
+  confirmList: { gap: 1, borderRadius: radius.md, overflow: "hidden", borderWidth: 0.5, borderColor: colors.border },
+  confirmRow: { backgroundColor: colors.surface, paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 0.5, borderBottomColor: colors.border },
+  confirmLabel: { color: colors.textTertiary, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 3 },
+  confirmVal: { color: colors.textPrimary, fontSize: 14, fontWeight: "500" },
+
+  footer: { paddingHorizontal: 20, paddingBottom: 32, paddingTop: 12, gap: 10 },
+  skipBtn: { alignItems: "center", paddingVertical: 12, borderRadius: radius.pill, borderWidth: 0.5, borderColor: colors.border },
+  skipText: { color: colors.textSecondary, fontSize: 14, fontWeight: "600" },
+  continueBtn: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, backgroundColor: colors.primary, borderRadius: radius.pill, paddingVertical: 16 },
+  continueBtnDisabled: { opacity: 0.4 },
+  continueBtnText: { color: colors.textOnPrimary, fontSize: 15, fontWeight: "700" },
 });

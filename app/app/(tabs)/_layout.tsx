@@ -1,6 +1,7 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { colors } from "@/lib/theme";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -11,12 +12,6 @@ const tabs: {
   activeIcon: IconName;
 }[] = [
   { name: "home", title: "Home", icon: "home-outline", activeIcon: "home" },
-  {
-    name: "goals",
-    title: "Goals",
-    icon: "radio-button-off-outline",
-    activeIcon: "radio-button-on",
-  },
   {
     name: "community",
     title: "Community",
@@ -55,15 +50,15 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#161616",
-          borderTopColor: "rgba(255,255,255,0.07)",
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
           borderTopWidth: 0.5,
           height: 88,
           paddingBottom: 20,
           paddingTop: 10,
         },
-        tabBarActiveTintColor: "#7ED957",
-        tabBarInactiveTintColor: "#3A3A3A",
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textTertiary,
         tabBarLabelStyle: { fontSize: 10, fontWeight: "500" },
       }}
     >

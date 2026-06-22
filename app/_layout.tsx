@@ -1,10 +1,10 @@
-// import "../global.css";
 import React, { useEffect } from "react";
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth";
+import { colors } from "@/lib/theme";
 
 const queryClient = new QueryClient();
 
@@ -26,7 +26,9 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureHandlerRootView
+        style={{ flex: 1, backgroundColor: colors.background }}
+      >
         <StatusBar style="light" />
         <Stack
           screenOptions={{
@@ -35,9 +37,6 @@ export default function RootLayout() {
             gestureEnabled: false,
           }}
         >
-          <Stack.Screen name="app/admin/dashboard" />
-          <Stack.Screen name="app/admin/users" />
-          <Stack.Screen name="app/admin/user-detail" />
           <Stack.Screen name="index" />
           <Stack.Screen
             name="auth/onboard"
@@ -52,6 +51,10 @@ export default function RootLayout() {
           <Stack.Screen
             name="auth/forgot-password"
             options={{ gestureEnabled: true }}
+          />
+          <Stack.Screen
+            name="auth/personalize"
+            options={{ gestureEnabled: false }}
           />
           <Stack.Screen name="app/(tabs)" options={{ gestureEnabled: false }} />
           <Stack.Screen
@@ -68,6 +71,9 @@ export default function RootLayout() {
           />
           <Stack.Screen name="app/settings/change-password" />
           <Stack.Screen name="app/program" />
+          <Stack.Screen name="app/admin/dashboard" />
+          <Stack.Screen name="app/admin/users" />
+          <Stack.Screen name="app/admin/user-detail" />
         </Stack>
       </GestureHandlerRootView>
     </QueryClientProvider>
