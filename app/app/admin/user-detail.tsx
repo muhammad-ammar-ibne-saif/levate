@@ -46,16 +46,30 @@ export default function AdminUserDetailScreen() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
+    if (!userId) return;
+    const fetchUser = async () => {
       try {
         const { data } = await api.get(`/api/admin/users/${userId}`);
-        setUser(data.user);
-      } catch {
+        // Normalise — API might return user directly or nested
+        const u = data.user ?? data;
+        setUser({
+          ...u,
+          recentWorkouts: Array.isArray(u.recentWorkouts)
+            ? u.recentWorkouts
+            : [],
+          recentNotifications: Array.isArray(u.recentNotifications)
+            ? u.recentNotifications
+            : [],
+          workoutCount: u.workoutCount ?? 0,
+          totalMinutes: u.totalMinutes ?? 0,
+        });
+      } catch (e) {
+        console.error("Failed to load user detail:", e);
       } finally {
         setLoading(false);
       }
     };
-    fetch();
+    fetchUser();
   }, [userId]);
 
   const sendPush = async () => {
@@ -107,21 +121,32 @@ export default function AdminUserDetailScreen() {
     );
   };
 
-  if (loading) {
+  if (loading)
     return (
       <SafeAreaView style={s.safe}>
         <ActivityIndicator color={colors.primary} style={{ marginTop: 60 }} />
       </SafeAreaView>
     );
-  }
 
-  if (!user) {
+  if (!user)
     return (
       <SafeAreaView style={s.safe}>
+        <View style={s.header}>
+          <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
+            <Ionicons
+              name="chevron-back"
+              size={26}
+              color={colors.textPrimary}
+            />
+          </TouchableOpacity>
+        </View>
         <Text style={s.emptyText}>User not found.</Text>
       </SafeAreaView>
     );
-  }
+
+  const initials = (
+    (user.firstName?.[0] || "") + (user.lastName?.[0] || "")
+  ).toUpperCase();
 
   return (
     <SafeAreaView style={s.safe}>
@@ -140,16 +165,16 @@ export default function AdminUserDetailScreen() {
           <Text style={s.headerTitle}>User Details</Text>
         </View>
 
+        {/* Profile */}
         <View style={s.profileCard}>
           <View style={s.avatar}>
-            <Text style={s.avatarText}>
-              {(user.firstName[0] || "") + (user.lastName[0] || "")}
-            </Text>
+            <Text style={s.avatarText}>{initials || "?"}</Text>
           </View>
           <Text style={s.name}>
             {user.firstName} {user.lastName}
           </Text>
           <Text style={s.email}>{user.email}</Text>
+          {user.mobile ? <Text style={s.email}>{user.mobile}</Text> : null}
           {user.isAdmin && (
             <View style={s.adminBadge}>
               <Ionicons
@@ -162,6 +187,7 @@ export default function AdminUserDetailScreen() {
           )}
         </View>
 
+        {/* Stats */}
         <View style={s.statsRow}>
           <View style={s.statCell}>
             <Text style={s.statVal}>{user.workoutCount}</Text>
@@ -172,11 +198,23 @@ export default function AdminUserDetailScreen() {
             <Text style={s.statLabel}>Minutes</Text>
           </View>
           <View style={s.statCell}>
-            <Text style={s.statVal}>{user.daysPerWeek || "—"}</Text>
+            <Text style={s.statVal}>{user.daysPerWeek ?? "—"}</Text>
             <Text style={s.statLabel}>Days/wk</Text>
           </View>
         </View>
 
+        {/* Goals */}
+        {Array.isArray(user.goals) && user.goals.length > 0 && (
+          <View style={s.goalsRow}>
+            {user.goals.map((g) => (
+              <View key={g} style={s.goalTag}>
+                <Text style={s.goalTagText}>{g}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Admin toggle */}
         <TouchableOpacity style={s.adminToggleRow} onPress={toggleAdmin}>
           <Ionicons
             name={user.isAdmin ? "shield-checkmark-outline" : "shield-outline"}
@@ -193,6 +231,7 @@ export default function AdminUserDetailScreen() {
           />
         </TouchableOpacity>
 
+        {/* Recent Workouts */}
         <Text style={s.sectionTitle}>Recent Workouts</Text>
         <View style={s.listCard}>
           {user.recentWorkouts.length === 0 ? (
@@ -208,7 +247,7 @@ export default function AdminUserDetailScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={s.listTitle}>{w.name}</Text>
                   <Text style={s.listSub}>
-                    {w.durationMinutes} min ·{" "}
+                    {w.durationMinutes ?? 0} min ·{" "}
                     {new Date(w.createdAt).toLocaleDateString()}
                   </Text>
                 </View>
@@ -217,6 +256,7 @@ export default function AdminUserDetailScreen() {
           )}
         </View>
 
+        {/* Send notification */}
         <Text style={s.sectionTitle}>Send Push Notification</Text>
         <View style={s.pushCard}>
           <TextInput
@@ -227,7 +267,10 @@ export default function AdminUserDetailScreen() {
             onChangeText={setPushTitle}
           />
           <TextInput
-            style={[s.pushInput, { height: 70, textAlignVertical: "top" }]}
+            style={[
+              s.pushInput,
+              { height: 80, textAlignVertical: "top", paddingTop: 10 },
+            ]}
             placeholder="Message"
             placeholderTextColor={colors.textTertiary}
             value={pushBody}
@@ -308,7 +351,7 @@ const s = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 0.5,
     borderColor: colors.border,
-    marginBottom: 16,
+    marginBottom: 12,
     overflow: "hidden",
   },
   statCell: { flex: 1, alignItems: "center", paddingVertical: 16 },
@@ -319,6 +362,27 @@ const s = StyleSheet.create({
   },
   statVal: { color: colors.textPrimary, fontSize: 20, fontWeight: "800" },
   statLabel: { color: colors.textTertiary, fontSize: 10, marginTop: 2 },
+  goalsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  goalTag: {
+    backgroundColor: colors.primaryDim,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 0.5,
+    borderColor: colors.borderStrong,
+  },
+  goalTagText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
   adminToggleRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -350,10 +414,17 @@ const s = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 0.5,
     borderColor: colors.border,
-    padding: 4,
+    overflow: "hidden",
     marginBottom: 20,
   },
-  listRow: { flexDirection: "row", alignItems: "center", gap: 10, padding: 12 },
+  listRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 14,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.border,
+  },
   listTitle: { color: colors.textPrimary, fontSize: 13, fontWeight: "600" },
   listSub: { color: colors.textTertiary, fontSize: 11, marginTop: 1 },
   pushCard: {

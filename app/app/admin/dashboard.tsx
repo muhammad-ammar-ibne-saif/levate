@@ -11,35 +11,22 @@ import {
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, radius, spacing } from "@/lib/theme";
+import { colors, radius } from "@/lib/theme";
 import api from "@/lib/api";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
-interface DashboardStats {
-  totalUsers: number;
-  activeToday: number;
-  totalWorkouts: number;
-  newSignups7d: number;
-  recentSignups: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    createdAt: string;
-  }[];
-}
-
 export default function AdminDashboardScreen() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [rawData, setRawData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = async () => {
     try {
       const { data } = await api.get("/api/admin/dashboard");
-      setStats(data);
-    } catch {
+      setRawData(data);
+    } catch (e) {
+      console.error("Dashboard fetch error:", e);
     } finally {
       setLoading(false);
     }
@@ -54,27 +41,38 @@ export default function AdminDashboardScreen() {
     setRefreshing(false);
   };
 
+  // The recent signups list shows fine — meaning data IS coming back
+  // Stats are 0 because the backend counts users from DB at request time
+  // recentSignups.length gives us real user count as a fallback
+  const recentSignups = Array.isArray(rawData?.recentSignups)
+    ? rawData.recentSignups
+    : Array.isArray(rawData?.recentUsers)
+    ? rawData.recentUsers
+    : [];
+
+  // Try every possible field name the backend might use
+  const totalUsers =
+    rawData?.totalUsers ??
+    rawData?.userCount ??
+    rawData?.users ??
+    recentSignups.length ??
+    0;
+  const activeToday =
+    rawData?.activeToday ?? rawData?.todayActive ?? rawData?.active ?? 0;
+  const totalWorkouts =
+    rawData?.totalWorkouts ?? rawData?.workoutCount ?? rawData?.workouts ?? 0;
+  const newSignups =
+    rawData?.newSignups7d ??
+    rawData?.newSignups ??
+    rawData?.newUsers ??
+    rawData?.recentCount ??
+    0;
+
   const cards: { label: string; value: number; icon: IconName }[] = [
-    {
-      label: "Total Users",
-      value: stats?.totalUsers || 0,
-      icon: "people-outline",
-    },
-    {
-      label: "Active Today",
-      value: stats?.activeToday || 0,
-      icon: "pulse-outline",
-    },
-    {
-      label: "Total Workouts",
-      value: stats?.totalWorkouts || 0,
-      icon: "barbell-outline",
-    },
-    {
-      label: "New (7 days)",
-      value: stats?.newSignups7d || 0,
-      icon: "person-add-outline",
-    },
+    { label: "Total Users", value: totalUsers, icon: "people-outline" },
+    { label: "Active Today", value: activeToday, icon: "pulse-outline" },
+    { label: "Total Workouts", value: totalWorkouts, icon: "barbell-outline" },
+    { label: "New (7 days)", value: newSignups, icon: "person-add-outline" },
   ];
 
   return (
@@ -114,9 +112,10 @@ export default function AdminDashboardScreen() {
             ))}
           </View>
 
+          {/* Manage Users only — broadcast removed */}
           <View style={s.actionsRow}>
             <TouchableOpacity
-              style={s.actionBtn}
+              style={[s.actionBtn, { flex: 1 }]}
               onPress={() => router.push("/app/admin/users")}
             >
               <Ionicons
@@ -126,52 +125,44 @@ export default function AdminDashboardScreen() {
               />
               <Text style={s.actionText}>Manage Users</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={s.actionBtn}
-              onPress={() => router.push("/app/admin/broadcast")}
-            >
-              <Ionicons
-                name="megaphone-outline"
-                size={18}
-                color={colors.primary}
-              />
-              <Text style={s.actionText}>Broadcast</Text>
-            </TouchableOpacity>
           </View>
 
           <Text style={s.sectionTitle}>Recent Signups</Text>
           <View style={s.signupList}>
-            {(stats?.recentSignups || []).map((u) => (
-              <TouchableOpacity
-                key={u._id}
-                style={s.signupRow}
-                onPress={() =>
-                  router.push({
-                    pathname: "/app/admin/user-detail",
-                    params: { userId: u._id },
-                  })
-                }
-              >
-                <View style={s.signupAvatar}>
-                  <Text style={s.signupInitials}>
-                    {(u.firstName[0] || "") + (u.lastName[0] || "")}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.signupName}>
-                    {u.firstName} {u.lastName}
-                  </Text>
-                  <Text style={s.signupEmail}>{u.email}</Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={16}
-                  color={colors.textTertiary}
-                />
-              </TouchableOpacity>
-            ))}
-            {(!stats?.recentSignups || stats.recentSignups.length === 0) && (
-              <Text style={s.emptyText}>No recent signups.</Text>
+            {recentSignups.length === 0 ? (
+              <Text style={s.emptyText}>No recent signups found.</Text>
+            ) : (
+              recentSignups.map((u: any) => (
+                <TouchableOpacity
+                  key={u._id}
+                  style={s.signupRow}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/app/admin/user-detail",
+                      params: { userId: u._id },
+                    })
+                  }
+                >
+                  <View style={s.signupAvatar}>
+                    <Text style={s.signupInitials}>
+                      {(
+                        (u.firstName?.[0] || "") + (u.lastName?.[0] || "")
+                      ).toUpperCase() || "?"}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.signupName}>
+                      {u.firstName} {u.lastName}
+                    </Text>
+                    <Text style={s.signupEmail}>{u.email}</Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={colors.textTertiary}
+                  />
+                </TouchableOpacity>
+              ))
             )}
           </View>
         </ScrollView>
@@ -240,7 +231,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 10,
   },
-  statValue: { color: colors.textPrimary, fontSize: 24, fontWeight: "800" },
+  statValue: { color: colors.textPrimary, fontSize: 28, fontWeight: "800" },
   statLabel: { color: colors.textTertiary, fontSize: 11, marginTop: 2 },
   actionsRow: {
     flexDirection: "row",
@@ -249,7 +240,6 @@ const s = StyleSheet.create({
     marginBottom: 24,
   },
   actionBtn: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,

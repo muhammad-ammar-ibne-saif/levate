@@ -15,8 +15,9 @@ export interface User {
   currentProgram?: string;
   goals?: string[];
   notificationsEnabled?: boolean;
-  isAdmin?: boolean;    // ← admin flag
-  daysPerWeek?: number;       
+  isAdmin?: boolean;    
+  daysPerWeek?: number; 
+  onboardingComplete?: boolean;      
 }
 
 interface AuthState {
