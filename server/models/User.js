@@ -21,6 +21,11 @@ const userSchema = new mongoose.Schema(
     fitnessLevel:       { type: String, default: "beginner" },
 onboardingComplete: { type: Boolean, default: false },
 onboardingData:     { type: String, default: "" },
+stripeCustomerId:     { type: String, default: "" },
+stripeSubscriptionId: { type: String, default: "" },
+subscribed:           { type: Boolean, default: false },
+subscriptionStatus:   { type: String, default: "none" },
+subscriptionPlan:     { type: String, default: "" },
   },
   { timestamps: true }
 );

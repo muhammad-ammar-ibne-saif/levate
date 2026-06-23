@@ -20,6 +20,7 @@ const chatRoutes         = require("./routes/chat");
 const notificationRoutes = require("./routes/notifications");
 const adminRoutes        = require("./routes/admin");
 const communityRoutes    = require("./routes/community");
+const paymentsRouter     = require("./routes/payments"); // ✅ require only here
 
 const User    = require("./models/User");
 const Message = require("./models/Message");
@@ -188,6 +189,7 @@ app.use("/api/chat",          chatRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin",         adminRoutes);
 app.use("/api/community",     communityRoutes);
+app.use("/api/payments",      paymentsRouter);   // ✅ registered after app is created
 
 app.get("/health", (_, res) => res.json({ status: "ok" }));
 

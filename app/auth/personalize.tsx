@@ -294,7 +294,7 @@ export default function PersonalizeScreen() {
           extra,
         }),
       } as any);
-      router.replace("/app/(tabs)/home");
+     router.replace("/auth/choose-plan");
     } catch {
       Alert.alert(
         "Error",
