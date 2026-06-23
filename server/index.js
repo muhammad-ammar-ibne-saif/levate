@@ -189,7 +189,7 @@ app.use("/api/chat",          chatRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin",         adminRoutes);
 app.use("/api/community",     communityRoutes);
-app.use("/api/payments",      paymentsRouter);   // ✅ registered after app is created
+app.use("/api/payments",      paymentsRouter);   
 
 app.get("/health", (_, res) => res.json({ status: "ok" }));
 
