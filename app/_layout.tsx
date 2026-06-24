@@ -27,10 +27,10 @@ export default function RootLayout() {
       }
 
       // Onboarded but not subscribed — go to plan selection
-      if (!user?.subscribed) {
-        router.replace("/auth/choose-plan");
-        return;
-      }
+      // if (!user?.subscribed) {
+      //   router.replace("/auth/choose-plan");
+      //   return;
+      // }
 
       // Fully set up — go to main app
       router.replace("/app/(tabs)/home");
